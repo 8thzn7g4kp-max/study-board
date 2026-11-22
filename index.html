@@ -1,0 +1,3007 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>双人联合复习看板</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    @keyframes pulse-soft {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .sync-dot { animation: pulse-soft 2s infinite; }
+
+    @keyframes duo-bounce {
+      0% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.26) rotate(-8deg); }
+      50% { transform: scale(0.95) rotate(6deg); }
+      75% { transform: scale(1.14) rotate(-3deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .duo-celebrate {
+      animation: duo-bounce 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .onenote-tab {
+      position: relative;
+      border-top-left-radius: 0.65rem;
+      border-top-right-radius: 0.65rem;
+      transition: all 0.16s ease;
+    }
+    .onenote-tab-active {
+      background-color: #f8fafc;
+      color: #0f172a;
+      box-shadow: 0 -2px 6px rgba(15, 23, 42, 0.04);
+      z-index: 10;
+    }
+    .onenote-tab-inactive {
+      background-color: #e2e8f0;
+      color: #475569;
+    }
+    .onenote-tab-inactive:hover {
+      background-color: #cbd5e1;
+      color: #1e293b;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#f8fafc]">
+
+  <!-- 顶部主导航栏 -->
+  <header id="mainHeader" class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-orange-500 flex items-center justify-center text-white text-sm font-bold shadow-xs">
+          研
+        </div>
+        <h1 class="text-base sm:text-lg font-bold text-slate-800 tracking-tight">联合复习看板</h1>
+        <span id="syncStatusBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+          <span id="syncDot" class="w-1.5 h-1.5 rounded-full bg-amber-500 sync-dot"></span>
+          <span id="syncText">连接中...</span>
+        </span>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200">
+          <span class="text-xs text-slate-500 pl-2 pr-1 font-medium">房间:</span>
+          <input id="roomInput" type="text" maxlength="16"
+            class="w-24 sm:w-28 bg-white text-xs font-mono font-semibold text-slate-800 px-2 py-1 rounded border border-slate-200 focus:outline-none focus:border-blue-500"
+            placeholder="房间号" />
+          <button onclick="switchRoom()" class="ml-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white text-xs font-medium rounded transition">
+            进入
+          </button>
+          <button onclick="copyInviteLink()" class="ml-1 px-2 py-1 bg-white hover:bg-slate-50 text-slate-600 text-xs font-medium rounded border border-slate-200 transition">
+            复制链接
+          </button>
+        </div>
+
+        <button onclick="editExamDate()" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold border border-indigo-200 transition flex items-center gap-1">
+          <span>🎯 距初试</span>
+          <span id="countdownDays" class="font-bold text-sm">--</span>
+          <span>天</span>
+        </button>
+
+        <button onclick="openReportModal()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition flex items-center gap-1.5">
+          <span>📋 今日战报</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- OneNote 风格上方分区标签栏 -->
+    <div class="bg-slate-200/80 border-t border-slate-200/90 pt-1.5 px-3 sm:px-4">
+      <div class="max-w-7xl mx-auto flex items-end gap-1.5 overflow-x-auto">
+        <button id="tabBtn_tasks" onclick="switchSectionTab('tasks')" type="button"
+          class="onenote-tab onenote-tab-active px-4 py-2 text-xs sm:text-sm font-bold flex items-center gap-2 border-t-[3px] border-t-violet-600 border-x border-slate-300/80 shrink-0">
+          <span>📅 任务排期 & 今日执行</span>
+          <span id="tabBadge_tasks" class="px-1.5 py-0.2 rounded-full text-[11px] font-mono bg-violet-100 text-violet-700">0%</span>
+        </button>
+
+        <button id="tabBtn_progress" onclick="switchSectionTab('progress')" type="button"
+          class="onenote-tab onenote-tab-inactive px-4 py-2 text-xs sm:text-sm font-bold flex items-center gap-2 border-t-[3px] border-t-blue-500 border-x border-slate-300/70 shrink-0">
+          <span>📚 学科章节 & 公共课进度</span>
+          <span id="tabBadge_progress" class="px-1.5 py-0.2 rounded-full text-[11px] font-mono bg-white/80 text-slate-600">双科</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 py-3 sm:py-4">
+
+    <!-- ==================== 分区视图一：任务排期与今日执行 ==================== -->
+    <div id="sectionView_tasks" class="space-y-4">
+
+      <!-- 1. 周计划完成度大进度条（始终固定吸顶在导航栏正下方） -->
+      <section id="stickyWeekBarSection"
+        class="sticky z-20 bg-white/95 backdrop-blur-xs rounded-2xl border border-slate-200/90 shadow-sm px-4 py-3 transition-shadow">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div class="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+            <span class="text-sm sm:text-base font-extrabold text-slate-800">🏆 周计划总完成度</span>
+            <span id="weekRangeLabel" class="text-xs font-mono text-violet-700 bg-violet-100/80 px-2.5 py-0.5 rounded-md font-bold"></span>
+            <span id="bigWeekProgressLabel" class="text-xs sm:text-sm font-extrabold text-violet-700 bg-violet-50 border border-violet-200/80 px-2.5 py-0.5 rounded-md">
+              0% (0/0)
+            </span>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button onclick="shiftWeek(-1)" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-lg text-xs font-medium transition">← 上一周</button>
+            <button onclick="resetWeek()" class="px-2.5 py-1 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-semibold transition">本周</button>
+            <button onclick="shiftWeek(1)" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-lg text-xs font-medium transition">下一周 →</button>
+          </div>
+        </div>
+
+        <!-- 真实比例定位刻度的大进度条 -->
+        <div class="relative w-full h-5 sm:h-6 bg-slate-100 rounded-full overflow-hidden border border-slate-200/80 p-0.5 select-none">
+          <div id="bigWeekProgressBar"
+            class="h-full rounded-full bg-gradient-to-r from-blue-600 via-violet-600 to-orange-500 transition-all duration-500"
+            style="width: 0%">
+          </div>
+
+          <div style="left: 25%" class="absolute top-0 bottom-0 -translate-x-1/2 flex flex-col items-center justify-center pointer-events-none">
+            <span id="tickLabel25" class="text-[10px] font-mono font-bold text-slate-400 transition-colors">25%</span>
+          </div>
+
+          <div style="left: 50%" class="absolute top-0 bottom-0 -translate-x-1/2 flex flex-col items-center justify-center pointer-events-none">
+            <span id="tickLabel50" class="text-[10px] font-mono font-bold text-slate-400 transition-colors">50%</span>
+          </div>
+
+          <div style="left: 75%" class="absolute top-0 bottom-0 -translate-x-1/2 flex flex-col items-center justify-center pointer-events-none">
+            <span id="tickLabel75" class="text-[10px] font-mono font-bold text-slate-400 transition-colors">75%</span>
+          </div>
+
+          <div class="absolute top-0 bottom-0 right-2.5 flex items-center pointer-events-none">
+            <span id="tickLabel100" class="text-[10px] font-mono font-bold text-slate-400 transition-colors">100%</span>
+          </div>
+        </div>
+
+        <div class="mt-1.5 flex items-center gap-4 flex-wrap text-xs">
+          <span class="inline-flex items-center gap-1.5 text-blue-700 font-semibold">
+            <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+            <span id="bigWeekSubA">用户A: 0% (0/0)</span>
+          </span>
+          <span class="inline-flex items-center gap-1.5 text-orange-600 font-semibold">
+            <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+            <span id="bigWeekSubB">用户B: 0% (0/0)</span>
+          </span>
+        </div>
+      </section>
+
+      <!-- 2. 左右双栏：可改用户名 + 今日能量 + 补做统计 + 每日习惯 + 任务排期 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <!-- ==================== 左侧 ==================== -->
+        <div class="bg-white rounded-2xl border border-blue-200/80 shadow-xs p-3.5 sm:p-4 flex flex-col">
+
+          <!-- 顶部可编辑用户名栏 -->
+          <div class="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-slate-100">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <span class="w-2.5 h-5 rounded-full bg-blue-600 shrink-0"></span>
+              <input id="userAName_tasks" onchange="updateProfileFrom('A', this.value)" value="懒羊羊"
+                title="点击修改昵称"
+                class="font-bold text-slate-800 text-base bg-transparent border-b border-dashed border-slate-300 hover:border-blue-400 focus:border-blue-600 focus:outline-none px-1 py-0.5 w-full max-w-[220px]" />
+            </div>
+            <span class="text-[11px] text-slate-400 shrink-0">点击昵称可改</span>
+          </div>
+
+          <!-- 今日能量 & 补做统计卡片 -->
+          <div class="mb-3.5 p-3 rounded-xl bg-gradient-to-r from-emerald-50/90 via-blue-50/70 to-indigo-50/60 border border-emerald-200/80">
+            <div class="flex items-center justify-between gap-2.5">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div id="duoMascotWrapA"
+                  class="w-11 h-11 rounded-2xl bg-white border border-emerald-200 shadow-2xs flex flex-col items-center justify-center shrink-0 select-none">
+                  <span id="duoMascotEmojiA" class="text-xl leading-none">🥚</span>
+                  <span id="duoMascotTagA" class="text-[9px] font-extrabold text-emerald-700 mt-0.5">蓄力</span>
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span id="todayTitleA" class="text-xs font-extrabold text-slate-800">今日能量</span>
+                    <span id="todayPctTextA" class="text-xs font-extrabold text-emerald-700">0% (0/0)</span>
+                  </div>
+                  <p id="duoEncourageMsgA" class="text-[11px] font-medium text-slate-600 truncate mt-0.5">
+                    点亮今天的第一项任务吧！
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex flex-col items-end gap-1 shrink-0">
+                <span id="catchupDoneBadgeA"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100/90 text-amber-800 border border-amber-200">
+                  <span>🔄 已补做</span>
+                  <span id="catchupDoneCountA">0</span>
+                </span>
+                <button id="catchupOverdueBtnA" onclick="toggleOverdueDrawer('A')" type="button"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-white hover:bg-rose-50 text-slate-600 border border-slate-200 transition">
+                  <span>⏳ 待补做</span>
+                  <span id="catchupOverdueCountA">0</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="mt-2.5 w-full h-2.5 bg-white/90 rounded-full overflow-hidden border border-emerald-200/70">
+              <div id="todayProgressBarA"
+                class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-lime-500 transition-all duration-500"
+                style="width: 0%"></div>
+            </div>
+
+            <div id="overdueDrawerA" class="hidden mt-2.5 pt-2 border-t border-emerald-200/70 space-y-1.5"></div>
+          </div>
+
+          <!-- 每日固定打卡 -->
+          <div class="mb-3 pb-3 border-b border-slate-100">
+            <div class="text-xs font-bold text-indigo-700 mb-2">🔁 每日固定打卡</div>
+            <div class="flex gap-1.5 mb-2">
+              <input id="dailyHabitInputA" type="text" onkeydown="if(event.key==='Enter') addDailyHabit('A')"
+                placeholder="添加每日打卡..."
+                class="flex-1 min-w-0 text-xs bg-indigo-50/40 border border-indigo-200/80 rounded-lg px-2.5 py-1 focus:bg-white focus:outline-none focus:border-indigo-500" />
+              <button onclick="addDailyHabit('A')" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shrink-0 transition">
+                + 添加
+              </button>
+            </div>
+            <div id="dailyHabitListA" class="space-y-1.5"></div>
+          </div>
+
+          <!-- 任务排期 -->
+          <div class="flex items-center justify-between mb-2">
+            <span id="weekListTitleA" class="text-xs font-bold text-blue-800">任务排期</span>
+            <span id="weekProgressTextA" class="text-xs font-bold text-blue-700">0% (0/0)</span>
+          </div>
+          <div class="w-full h-2 bg-blue-100 rounded-full overflow-hidden mb-3">
+            <div id="weekProgressBarA" class="h-full bg-blue-600 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+
+          <div class="flex flex-wrap sm:flex-nowrap gap-1.5 mb-3">
+            <input id="weekTaskInputA" type="text" onkeydown="if(event.key==='Enter') addWeekTask('A')"
+              placeholder="添加排期任务..."
+              class="flex-1 min-w-0 text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:bg-white focus:outline-none focus:border-blue-500" />
+            <select id="weekDaySelectA" onchange="handleAddSelectChange('A', this)"
+              class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700 font-medium focus:outline-none focus:border-blue-500 shrink-0">
+              <option value="1">周一</option>
+              <option value="2">周二</option>
+              <option value="3">周三</option>
+              <option value="4">周四</option>
+              <option value="5">周五</option>
+              <option value="6">周六</option>
+              <option value="7">周日</option>
+              <option value="custom_selected" id="customSelectedOptA" hidden>📅 11月16日</option>
+              <option value="pick_calendar">📅 更多(日历)...</option>
+            </select>
+            <button onclick="addWeekTask('A')" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shrink-0 transition">
+              + 添加
+            </button>
+          </div>
+
+          <div id="weekTaskListA" class="space-y-2 pr-0.5"></div>
+        </div>
+
+        <!-- ==================== 右侧 ==================== -->
+        <div class="bg-white rounded-2xl border border-orange-200/80 shadow-xs p-3.5 sm:p-4 flex flex-col">
+
+          <!-- 顶部可编辑用户名栏 -->
+          <div class="flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-slate-100">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <span class="w-2.5 h-5 rounded-full bg-orange-500 shrink-0"></span>
+              <input id="userBName_tasks" onchange="updateProfileFrom('B', this.value)" value="Daphne."
+                title="点击修改昵称"
+                class="font-bold text-slate-800 text-base bg-transparent border-b border-dashed border-slate-300 hover:border-orange-400 focus:border-orange-500 focus:outline-none px-1 py-0.5 w-full max-w-[220px]" />
+            </div>
+            <span class="text-[11px] text-slate-400 shrink-0">点击昵称可改</span>
+          </div>
+
+          <!-- 今日能量 & 补做统计卡片 -->
+          <div class="mb-3.5 p-3 rounded-xl bg-gradient-to-r from-amber-50/90 via-orange-50/70 to-rose-50/50 border border-amber-200/80">
+            <div class="flex items-center justify-between gap-2.5">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div id="duoMascotWrapB"
+                  class="w-11 h-11 rounded-2xl bg-white border border-amber-200 shadow-2xs flex flex-col items-center justify-center shrink-0 select-none">
+                  <span id="duoMascotEmojiB" class="text-xl leading-none">🥚</span>
+                  <span id="duoMascotTagB" class="text-[9px] font-extrabold text-amber-700 mt-0.5">蓄力</span>
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span id="todayTitleB" class="text-xs font-extrabold text-slate-800">今日能量</span>
+                    <span id="todayPctTextB" class="text-xs font-extrabold text-orange-600">0% (0/0)</span>
+                  </div>
+                  <p id="duoEncourageMsgB" class="text-[11px] font-medium text-slate-600 truncate mt-0.5">
+                    点亮今天的第一项任务吧！
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex flex-col items-end gap-1 shrink-0">
+                <span id="catchupDoneBadgeB"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100/90 text-amber-800 border border-amber-200">
+                  <span>🔄 已补做</span>
+                  <span id="catchupDoneCountB">0</span>
+                </span>
+                <button id="catchupOverdueBtnB" onclick="toggleOverdueDrawer('B')" type="button"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-white hover:bg-rose-50 text-slate-600 border border-slate-200 transition">
+                  <span>⏳ 待补做</span>
+                  <span id="catchupOverdueCountB">0</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="mt-2.5 w-full h-2.5 bg-white/90 rounded-full overflow-hidden border border-amber-200/70">
+              <div id="todayProgressBarB"
+                class="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-500"
+                style="width: 0%"></div>
+            </div>
+
+            <div id="overdueDrawerB" class="hidden mt-2.5 pt-2 border-t border-amber-200/70 space-y-1.5"></div>
+          </div>
+
+          <!-- 每日固定打卡 -->
+          <div class="mb-3 pb-3 border-b border-slate-100">
+            <div class="text-xs font-bold text-amber-700 mb-2">🔁 每日固定打卡</div>
+            <div class="flex gap-1.5 mb-2">
+              <input id="dailyHabitInputB" type="text" onkeydown="if(event.key==='Enter') addDailyHabit('B')"
+                placeholder="添加每日打卡..."
+                class="flex-1 min-w-0 text-xs bg-amber-50/40 border border-amber-200/80 rounded-lg px-2.5 py-1 focus:bg-white focus:outline-none focus:border-amber-500" />
+              <button onclick="addDailyHabit('B')" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg shrink-0 transition">
+                + 添加
+              </button>
+            </div>
+            <div id="dailyHabitListB" class="space-y-1.5"></div>
+          </div>
+
+          <!-- 任务排期 -->
+          <div class="flex items-center justify-between mb-2">
+            <span id="weekListTitleB" class="text-xs font-bold text-orange-800">任务排期</span>
+            <span id="weekProgressTextB" class="text-xs font-bold text-orange-600">0% (0/0)</span>
+          </div>
+          <div class="w-full h-2 bg-orange-100 rounded-full overflow-hidden mb-3">
+            <div id="weekProgressBarB" class="h-full bg-orange-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+
+          <div class="flex flex-wrap sm:flex-nowrap gap-1.5 mb-3">
+            <input id="weekTaskInputB" type="text" onkeydown="if(event.key==='Enter') addWeekTask('B')"
+              placeholder="添加排期任务..."
+              class="flex-1 min-w-0 text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:bg-white focus:outline-none focus:border-orange-500" />
+            <select id="weekDaySelectB" onchange="handleAddSelectChange('B', this)"
+              class="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700 font-medium focus:outline-none focus:border-orange-500 shrink-0">
+              <option value="1">周一</option>
+              <option value="2">周二</option>
+              <option value="3">周三</option>
+              <option value="4">周四</option>
+              <option value="5">周五</option>
+              <option value="6">周六</option>
+              <option value="7">周日</option>
+              <option value="custom_selected" id="customSelectedOptB" hidden>📅 11月16日</option>
+              <option value="pick_calendar">📅 更多(日历)...</option>
+            </select>
+            <button onclick="addWeekTask('B')" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold rounded-lg shrink-0 transition">
+              + 添加
+            </button>
+          </div>
+
+          <div id="weekTaskListB" class="space-y-2 pr-0.5"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 分区视图二：50 / 50 左右双栏学科章节与公共课进度 ==================== -->
+    <div id="sectionView_progress" class="hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <!-- ==================== 左栏 ==================== -->
+        <section class="bg-white rounded-2xl border border-blue-200/80 shadow-xs flex flex-col overflow-hidden">
+          <div class="p-4 bg-gradient-to-r from-blue-50/90 to-slate-50 border-b border-blue-100">
+            <div class="flex items-center justify-between gap-2 mb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-6 rounded-full bg-blue-600"></span>
+                <input id="userAName_progress" onchange="updateProfileFrom('A', this.value)" value="懒羊羊"
+                  title="点击修改昵称"
+                  class="font-bold text-slate-800 text-base bg-transparent border-b border-dashed border-transparent hover:border-blue-300 focus:border-blue-600 focus:outline-none px-1 py-0.5 w-40 sm:w-48" />
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button onclick="openBulkModal('A')" class="text-xs px-2.5 py-1 rounded-lg bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 font-medium transition">
+                  📋 批量导入
+                </button>
+                <button onclick="addChapter('A')" class="text-xs px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-2xs transition">
+                  + 加章节
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-medium text-slate-600 mb-1">
+                <span>📚 专业课总进度</span>
+                <span id="progressTextA" class="text-blue-700 font-bold">0% (0/0)</span>
+              </div>
+              <div class="w-full h-2.5 bg-blue-100 rounded-full overflow-hidden">
+                <div id="progressBarA" class="h-full bg-blue-600 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="accordionContainerA" class="p-3 sm:p-4 space-y-2.5 flex-1 overflow-y-auto custom-scrollbar max-h-[64vh]"></div>
+
+          <div class="p-3.5 bg-slate-50/80 border-t border-slate-100">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-semibold text-slate-600">📝 今日复盘 / 留言</span>
+              <button onclick="likePartner('A')" class="text-xs px-2.5 py-0.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-medium transition">
+                ❤️ 点赞 (<span id="likesA">0</span>)
+              </button>
+            </div>
+            <textarea id="noteA" rows="2" onchange="updateNote('A')" placeholder="记录今日复盘或留言..."
+              class="w-full text-xs bg-white border border-slate-200 rounded-xl p-2.5 text-slate-700 focus:outline-none focus:border-blue-500 resize-none"></textarea>
+          </div>
+        </section>
+
+        <!-- ==================== 右栏 ==================== -->
+        <section class="bg-white rounded-2xl border border-orange-200/80 shadow-xs flex flex-col overflow-hidden">
+          <div class="p-4 bg-gradient-to-r from-orange-50/90 to-slate-50 border-b border-orange-100">
+            <div class="flex items-center justify-between gap-2 mb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-6 rounded-full bg-orange-500"></span>
+                <input id="userBName_progress" onchange="updateProfileFrom('B', this.value)" value="Daphne."
+                  title="点击修改昵称"
+                  class="font-bold text-slate-800 text-base bg-transparent border-b border-dashed border-transparent hover:border-orange-300 focus:border-orange-500 focus:outline-none px-1 py-0.5 w-40 sm:w-48" />
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button onclick="toggleTargetRounds()" id="targetRoundBtn"
+                  class="text-xs px-2 py-1 rounded-lg bg-white hover:bg-orange-50 text-orange-700 border border-orange-200 font-medium transition">
+                  默认: 三刷制
+                </button>
+                <button onclick="openBulkModal('B')" class="text-xs px-2 py-1 rounded-lg bg-white hover:bg-orange-50 text-orange-700 border border-orange-200 font-medium transition">
+                  📋 批量导入
+                </button>
+                <button onclick="addChapter('B')" class="text-xs px-2.5 py-1 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-medium shadow-2xs transition">
+                  + 加章节
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-medium text-slate-600 mb-1">
+                <span>🔥 专业课总进度</span>
+                <span id="progressTextB" class="text-orange-600 font-bold">0% (0/0轮)</span>
+              </div>
+              <div class="w-full h-2.5 bg-orange-100 rounded-full overflow-hidden">
+                <div id="progressBarB" class="h-full bg-orange-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="accordionContainerB" class="p-3 sm:p-4 space-y-2.5 flex-1 overflow-y-auto custom-scrollbar max-h-[64vh]"></div>
+
+          <div class="p-3.5 bg-slate-50/80 border-t border-slate-100">
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="text-xs font-semibold text-slate-600">📝 今日复盘 / 留言</span>
+              <button onclick="likePartner('B')" class="text-xs px-2.5 py-0.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-medium transition">
+                ❤️ 点赞 (<span id="likesB">0</span>)
+              </button>
+            </div>
+            <textarea id="noteB" rows="2" onchange="updateNote('B')" placeholder="记录今日复盘或留言..."
+              class="w-full text-xs bg-white border border-slate-200 rounded-xl p-2.5 text-slate-700 focus:outline-none focus:border-orange-500 resize-none"></textarea>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 悬浮小日历 Popover -->
+  <div id="floatingCalendarPopover"
+    class="fixed hidden z-50 bg-white rounded-xl w-64 p-3 shadow-xl border border-slate-200/90 select-none">
+    <div class="flex items-center justify-between mb-2 px-0.5">
+      <div id="calMonthTitle" class="text-sm font-bold text-slate-800 tracking-tight">2026年11月</div>
+      <div class="flex items-center gap-1.5">
+        <button onclick="shiftCalendarMonth(-1)" type="button"
+          class="w-6 h-6 rounded-md hover:bg-slate-100 text-slate-500 text-xs flex items-center justify-center transition">◀</button>
+        <button onclick="selectCalendarDate(getTodayStr())" type="button" title="今天"
+          class="w-2.5 h-2.5 rounded-full bg-slate-500 hover:bg-blue-600 transition"></button>
+        <button onclick="shiftCalendarMonth(1)" type="button"
+          class="w-6 h-6 rounded-md hover:bg-slate-100 text-slate-500 text-xs flex items-center justify-center transition">▶</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-7 text-center text-[11px] font-medium text-slate-400 pb-1.5 mb-1 border-b border-slate-100">
+      <div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div><div>日</div>
+    </div>
+    <div id="calDaysGrid" class="grid grid-cols-7 gap-y-0.5 text-center text-xs"></div>
+  </div>
+
+  <!-- 弹窗：按学科批量设置默认打卡项 -->
+  <div id="subjectDimModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl border border-slate-100">
+      <h3 id="subjectDimTitle" class="text-base font-bold text-slate-800 mb-3">设置默认打卡项</h3>
+      <div id="subjectDimList" class="space-y-2 mb-3"></div>
+      <div class="flex gap-2 mb-4">
+        <input id="newSubjectDimInput" type="text" onkeydown="if(event.key==='Enter') addSubjectDimension()"
+          placeholder="新增打卡项..."
+          class="flex-1 text-xs border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-blue-500" />
+        <button onclick="addSubjectDimension()" class="px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700">添加</button>
+      </div>
+      <div class="flex justify-end">
+        <button onclick="closeSubjectDimModal()" class="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg">完成</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 批量导入章节弹窗 -->
+  <div id="bulkModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl border border-slate-100">
+      <h3 class="text-base font-bold text-slate-800 mb-1">📋 批量导入章节</h3>
+      <p id="bulkHintText" class="text-xs text-slate-500 mb-3">每行一章。</p>
+      <textarea id="bulkInput" rows="10" placeholder="每行一章..."
+        class="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-700 focus:outline-none focus:border-blue-500 mb-3"></textarea>
+      <div class="flex items-center justify-between gap-2">
+        <button onclick="fillDefaultPresetA()" id="presetBtnA" class="text-xs px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-medium transition">
+          填入高代+数分预设
+        </button>
+        <div class="flex gap-2 ml-auto">
+          <button onclick="closeBulkModal()" class="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg">取消</button>
+          <button onclick="confirmBulkImport()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg">确认导入</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 微信战报弹窗 -->
+  <div id="reportModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-xl border border-slate-100">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-base font-bold text-slate-800">📋 今日复习战报</h3>
+        <button onclick="closeReportModal()" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+      </div>
+      <textarea id="reportText" rows="15" readonly class="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-700 focus:outline-none mb-3"></textarea>
+      <div class="flex justify-end gap-2">
+        <button onclick="closeReportModal()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg">关闭</button>
+        <button onclick="copyReport()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-xs">复制战报</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-200 z-50"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const firebaseConfig = {
+      databaseURL: "https://mystudy-d5721-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // 动态同步顶部导航栏高度到「周计划总完成度」吸顶位置，保证任何屏幕宽度下都无缝紧贴顶部栏
+    function syncStickyBarOffset() {
+      const header = document.getElementById("mainHeader");
+      const stickyBar = document.getElementById("stickyWeekBarSection");
+      if (header && stickyBar) {
+        stickyBar.style.top = `${header.offsetHeight + 6}px`;
+      }
+    }
+    syncStickyBarOffset();
+    window.addEventListener("resize", syncStickyBarOffset);
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(syncStickyBarOffset);
+      const headerEl = document.getElementById("mainHeader");
+      if (headerEl) ro.observe(headerEl);
+    }
+
+    const PRESET_CHAPTERS_A = [
+      "高代-第一章-多项式",
+      "高代-第二章-行列式",
+      "高代-第三章-向量组、方程组与线性空间",
+      "高代-第四章-矩阵",
+      "高代-第五章-矩阵的进一步讨论",
+      "高代-第六章-线性变换",
+      "高代-第七章-λ矩阵",
+      "高代-第八章-欧氏空间",
+      "数分-第一章-数列极限",
+      "数分-第二章-函数极限与连续",
+      "数分-第三章-微分及微分中值定理",
+      "数分-第四章-不定积分",
+      "数分-第五章-定积分",
+      "数分-第六章-反常积分",
+      "数分-第七章-数项级数",
+      "数分-第八章-函数列与函数项级数",
+      "数分-第九章-特殊的函数项级数——幂级数",
+      "数分-第十章-傅里叶级数",
+      "数分-第十一章-多元函数的极限与连续",
+      "数分-第十二章-多元函数微分学与隐函数求导的应用",
+      "数分-第十三章-含参量积分",
+      "数分-第十四章-重积分",
+      "数分-第十五章-曲线积分",
+      "数分-第十六章-曲面积分"
+    ];
+
+    const DEFAULT_DIMS_BY_SUBJECT = {
+      gaodai: ["看白皮书/讲义", "做习题", "整理错题"],
+      shufen: ["过定义定理", "刷习题", "归纳方法"],
+      other: ["做笔记", "刷习题", "整理错题"]
+    };
+
+    const DAY_LABELS = {
+      1: "周一", 2: "周二", 3: "周三", 4: "周四", 5: "周五", 6: "周六", 7: "周日", 0: "未设日期"
+    };
+    const SHORT_DAY_CHARS = ["一", "二", "三", "四", "五", "六", "日"];
+
+    function getSubjectKeyA(title) {
+      if (title.startsWith("高代")) return "gaodai";
+      if (title.startsWith("数分")) return "shufen";
+      return "other";
+    }
+
+    function getSubjectKeyB(title) {
+      if (title.startsWith("自然地理") || title.startsWith("自地")) return "ziran";
+      if (title.startsWith("人文地理") || title.startsWith("人地")) return "renwen";
+      if (title.startsWith("地理信息") || title.startsWith("GIS") || title.startsWith("gis")) return "gis";
+      if (title.startsWith("遥感") || title.startsWith("RS") || title.startsWith("rs")) return "yaogan";
+      return "other";
+    }
+
+    function formatDateObj(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    window.getTodayStr = () => formatDateObj(new Date());
+
+    function formatMonthDayCN(dateStr) {
+      if (!dateStr) return "";
+      const parts = dateStr.split("-");
+      if (parts.length !== 3) return dateStr;
+      return `${Number(parts[1])}月${Number(parts[2])}日`;
+    }
+
+    function formatShortSlash(dateStr) {
+      if (!dateStr) return "";
+      const parts = dateStr.split("-");
+      return parts.length === 3 ? `${parts[1]}/${parts[2]}` : dateStr;
+    }
+
+    function getMondayOfDateStr(dateStr) {
+      const [y, m, d] = dateStr.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      const day = dt.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const monday = new Date(y, m - 1, d + diffToMonday);
+      return formatDateObj(monday);
+    }
+
+    function getIsoDowFromDateStr(dateStr) {
+      const [y, m, d] = dateStr.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      const day = dt.getDay();
+      return day === 0 ? 7 : day;
+    }
+
+    function getMondayDateStr(offsetWeeks = 0) {
+      const now = new Date();
+      const day = now.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday + offsetWeeks * 7);
+      return formatDateObj(monday);
+    }
+
+    function getDateStrOfWeekDay(mondayStr, dayNum) {
+      if (!dayNum || dayNum < 1 || dayNum > 7) return "";
+      const [y, m, d] = mondayStr.split("-").map(Number);
+      const dt = new Date(y, m - 1, d + (dayNum - 1));
+      return formatDateObj(dt);
+    }
+
+    function normalizeChapterA(ch, subjectDims) {
+      const subj = getSubjectKeyA(ch.title || "");
+      const dims = subjectDims[subj] || DEFAULT_DIMS_BY_SUBJECT[subj];
+      if (Array.isArray(ch.items)) {
+        return {
+          id: ch.id || ("a_" + Date.now() + Math.random()),
+          title: ch.title || "未命名章节",
+          items: ch.items.filter(Boolean).map(it => ({
+            label: String(it.label || "任务"),
+            done: !!it.done
+          }))
+        };
+      }
+      if (Array.isArray(ch.checks)) {
+        return {
+          id: ch.id || ("a_" + Date.now() + Math.random()),
+          title: ch.title || "未命名章节",
+          items: dims.map((label, idx) => ({
+            label,
+            done: !!ch.checks[idx]
+          }))
+        };
+      }
+      return {
+        id: ch.id || ("a_" + Date.now() + Math.random()),
+        title: ch.title || "未命名章节",
+        items: dims.map(label => ({ label, done: false }))
+      };
+    }
+
+    function normalizeDailyHabits(rawHabits) {
+      if (!Array.isArray(rawHabits)) return [];
+      return rawHabits.filter(Boolean).map(h => ({
+        id: h.id || ("dh_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6)),
+        text: h.text || "背单词",
+        checks: (h.checks && typeof h.checks === "object") ? h.checks : {}
+      }));
+    }
+
+    function normalizeFreeLogs(rawLogs) {
+      const res = { english: [], politics: [] };
+      if (rawLogs && typeof rawLogs === "object") {
+        ["english", "politics"].forEach(k => {
+          const arr = Array.isArray(rawLogs[k]) ? rawLogs[k] : Object.values(rawLogs[k] || {});
+          res[k] = arr.filter(Boolean);
+        });
+      }
+      return res;
+    }
+
+    function normalizeWeeklyPlans(rawPlans) {
+      const res = {};
+      if (rawPlans && typeof rawPlans === "object") {
+        Object.keys(rawPlans).forEach(wk => {
+          const arr = Array.isArray(rawPlans[wk]) ? rawPlans[wk] : Object.values(rawPlans[wk] || {});
+          arr.filter(Boolean).forEach(task => {
+            if (task.customDate && /^\d{4}-\d{2}-\d{2}$/.test(task.customDate)) {
+              const actualMonday = getMondayOfDateStr(task.customDate);
+              const actualDow = getIsoDowFromDateStr(task.customDate);
+              if (!Array.isArray(res[actualMonday])) res[actualMonday] = [];
+              res[actualMonday].push({
+                ...task,
+                dayOfWeek: actualDow
+              });
+            } else {
+              if (!Array.isArray(res[wk])) res[wk] = [];
+              res[wk].push(task);
+            }
+          });
+        });
+      }
+      return res;
+    }
+
+    const defaultData = {
+      examDate: "2026-12-19",
+      userA: {
+        name: "懒羊羊",
+        subjectDims: JSON.parse(JSON.stringify(DEFAULT_DIMS_BY_SUBJECT)),
+        dailyHabits: [
+          { id: "dh_a_vocab", text: "背单词", checks: {} }
+        ],
+        weeklyPlans: {},
+        chapters: PRESET_CHAPTERS_A.map((title, idx) => {
+          const subj = getSubjectKeyA(title);
+          const dims = DEFAULT_DIMS_BY_SUBJECT[subj];
+          return {
+            id: "a_" + (idx + 1),
+            title,
+            items: dims.map(label => ({ label, done: false }))
+          };
+        }),
+        freeLogs: {
+          english: [],
+          politics: []
+        },
+        note: "",
+        likes: 0
+      },
+      userB: {
+        name: "Daphne.",
+        dailyHabits: [
+          { id: "dh_b_vocab", text: "背单词", checks: {} }
+        ],
+        weeklyPlans: {},
+        targetRounds: 3,
+        chapters: [
+          { id: "b_zr1", title: "自然地理-第一章", round: 0 },
+          { id: "b_rw1", title: "人文地理-第一章", round: 0 },
+          { id: "b_gis1", title: "地理信息-第一章", round: 0 },
+          { id: "b_yg1", title: "遥感-第一章", round: 0 }
+        ],
+        freeLogs: {
+          english: [],
+          politics: []
+        },
+        note: "",
+        likes: 0
+      }
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentRoom = (urlParams.get("room") || localStorage.getItem("kaoyan_room") || "kaoyan2027").trim().replace(/[.#$/[\]]/g, "_");
+    document.getElementById("roomInput").value = currentRoom;
+
+    let state = JSON.parse(JSON.stringify(defaultData));
+    let unsubscribe = null;
+    let isRemoteUpdating = false;
+    let currentBulkSide = "A";
+    let editingSubjectKey = "gaodai";
+
+    let activeSectionTab = localStorage.getItem("kaoyan_active_tab") || "tasks";
+    let overdueDrawerOpen = { A: false, B: false };
+
+    let customizingChapterIdxA = null;
+    let customizingChapterIdxB = null;
+
+    let editingWeekTask = null;
+    let editingDailyHabit = null;
+    let editingFreeLog = null;
+
+    let collapsedDateGroups = {};
+
+    let pendingCustomDate = { A: "", B: "" };
+    let lastValidSelectVal = { A: "1", B: "1" };
+
+    let calYear = new Date().getFullYear();
+    let calMonth = new Date().getMonth();
+    let calSelectedDate = "";
+    let calCallback = null;
+
+    let weekOffset = 0;
+    const todayDow = new Date().getDay() === 0 ? 7 : new Date().getDay();
+    document.getElementById("weekDaySelectA").value = String(todayDow);
+    document.getElementById("weekDaySelectB").value = String(todayDow);
+    lastValidSelectVal.A = String(todayDow);
+    lastValidSelectVal.B = String(todayDow);
+
+    let openGroupsA = { gaodai: true, shufen: false, other: false, english: true, politics: false };
+    let openGroupsB = { ziran: true, renwen: false, gis: false, yaogan: false, other: false, english: true, politics: false };
+
+    // ==================== OneNote 顶部分区标签切换 ====================
+    window.switchSectionTab = (tabKey) => {
+      activeSectionTab = tabKey;
+      localStorage.setItem("kaoyan_active_tab", tabKey);
+      applySectionTabUI();
+      syncStickyBarOffset();
+    };
+
+    function applySectionTabUI() {
+      const tasksView = document.getElementById("sectionView_tasks");
+      const progressView = document.getElementById("sectionView_progress");
+      const btnTasks = document.getElementById("tabBtn_tasks");
+      const btnProgress = document.getElementById("tabBtn_progress");
+
+      if (activeSectionTab === "progress") {
+        tasksView.classList.add("hidden");
+        progressView.classList.remove("hidden");
+        btnTasks.classList.remove("onenote-tab-active");
+        btnTasks.classList.add("onenote-tab-inactive");
+        btnProgress.classList.remove("onenote-tab-inactive");
+        btnProgress.classList.add("onenote-tab-active");
+      } else {
+        progressView.classList.add("hidden");
+        tasksView.classList.remove("hidden");
+        btnProgress.classList.remove("onenote-tab-active");
+        btnProgress.classList.add("onenote-tab-inactive");
+        btnTasks.classList.remove("onenote-tab-inactive");
+        btnTasks.classList.add("onenote-tab-active");
+      }
+    }
+
+    // ==================== 多邻国风格鼓励徽章动效与文案 ====================
+    function triggerMascotCelebrate(side) {
+      const wrap = document.getElementById(`duoMascotWrap${side}`);
+      if (!wrap) return;
+      wrap.classList.remove("duo-celebrate");
+      void wrap.offsetWidth;
+      wrap.classList.add("duo-celebrate");
+    }
+
+    function getDuolingoState(pct, totalToday, doneToday, userName) {
+      if (totalToday === 0) {
+        return {
+          emoji: "🦉",
+          tag: "待命",
+          msg: `${userName} 今天暂未排期，先点亮每日打卡吧`
+        };
+      }
+      if (doneToday === 0) {
+        return {
+          emoji: "🥚",
+          tag: "蓄力",
+          msg: `${userName} 点亮第一项今日任务，破壳冲刺！`
+        };
+      }
+      if (pct < 40) {
+        return {
+          emoji: "🐣",
+          tag: "破冰",
+          msg: `${userName} 已完成 ${doneToday}/${totalToday}，状态正在升温~`
+        };
+      }
+      if (pct < 70) {
+        return {
+          emoji: "🦉",
+          tag: "渐佳",
+          msg: `${userName} 进度过半 (${pct}%)，继续保持节奏 👏`
+        };
+      }
+      if (pct < 100) {
+        return {
+          emoji: "🔥",
+          tag: "冲刺",
+          msg: `${userName} 火力全开 (${pct}%)，还差 ${totalToday - doneToday} 项全胜！`
+        };
+      }
+      return {
+        emoji: "👑",
+        tag: "全胜",
+        msg: `${userName} 今日 100% 全部达成 🎉`
+      };
+    }
+
+    // ==================== 补做统计计算 ====================
+    function computeCatchupStats(user) {
+      const todayStr = getTodayStr();
+      let doneCatchupCount = 0;
+      const overdueItems = [];
+
+      const plans = user.weeklyPlans || {};
+      Object.keys(plans).sort().forEach(wkMonday => {
+        const arr = Array.isArray(plans[wkMonday]) ? plans[wkMonday] : [];
+        arr.forEach((task, idx) => {
+          const dow = Number(task.dayOfWeek ?? 0);
+          const plannedDate = task.customDate || (dow >= 1 && dow <= 7 ? getDateStrOfWeekDay(wkMonday, dow) : "");
+          if (!plannedDate) return;
+
+          if (task.done) {
+            if (task.completedDate && task.completedDate > plannedDate) {
+              doneCatchupCount++;
+            }
+          } else if (plannedDate < todayStr) {
+            overdueItems.push({
+              wkMonday,
+              idx,
+              task,
+              plannedDate
+            });
+          }
+        });
+      });
+
+      return { doneCatchupCount, overdueItems };
+    }
+
+    window.toggleOverdueDrawer = (side) => {
+      overdueDrawerOpen[side] = !overdueDrawerOpen[side];
+      renderWeeklyPanel();
+    };
+
+    window.completeOverdueTask = (side, wkMonday, idx) => {
+      const user = side === "A" ? state.userA : state.userB;
+      const task = user.weeklyPlans?.[wkMonday]?.[idx];
+      if (!task) return;
+      task.done = true;
+      task.completedDate = getTodayStr();
+      triggerMascotCelebrate(side);
+      renderWeeklyPanel();
+      pushState();
+      showToast(`已补做完成（${formatMonthDayCN(task.completedDate)}完成）`);
+    };
+
+    window.rescheduleOverdueToToday = (side, wkMonday, idx) => {
+      const user = side === "A" ? state.userA : state.userB;
+      const list = user.weeklyPlans?.[wkMonday];
+      const task = list?.[idx];
+      if (!task) return;
+
+      const todayStr = getTodayStr();
+      const targetMonday = getMondayOfDateStr(todayStr);
+      const targetDow = getIsoDowFromDateStr(todayStr);
+      task.customDate = todayStr;
+      task.dayOfWeek = targetDow;
+
+      if (targetMonday !== wkMonday) {
+        list.splice(idx, 1);
+        if (!Array.isArray(user.weeklyPlans[targetMonday])) user.weeklyPlans[targetMonday] = [];
+        user.weeklyPlans[targetMonday].push(task);
+      }
+
+      renderWeeklyPanel();
+      pushState();
+      showToast(`已移至今天（${formatMonthDayCN(todayStr)}）`);
+    };
+
+    // ==================== 悬浮小日历控制 ====================
+    function openFloatingCalendar(anchorEl, initialDateStr, onSelect) {
+      const base = initialDateStr && /^\d{4}-\d{2}-\d{2}$/.test(initialDateStr) ? initialDateStr : getTodayStr();
+      const [y, m] = base.split("-").map(Number);
+      calYear = y;
+      calMonth = m - 1;
+      calSelectedDate = base;
+      calCallback = onSelect;
+      renderFloatingCalendar();
+
+      const pop = document.getElementById("floatingCalendarPopover");
+      pop.classList.remove("hidden");
+
+      const rect = anchorEl ? anchorEl.getBoundingClientRect() : { left: 100, bottom: 160, top: 120 };
+      const popW = 256;
+      const popH = 265;
+      let left = rect.left;
+      if (left + popW > window.innerWidth - 12) {
+        left = Math.max(12, window.innerWidth - popW - 12);
+      }
+      let top = rect.bottom + 6;
+      if (top + popH > window.innerHeight - 12) {
+        top = Math.max(12, rect.top - popH - 6);
+      }
+      pop.style.left = `${left}px`;
+      pop.style.top = `${top}px`;
+    }
+
+    window.closeFloatingCalendar = () => {
+      const pop = document.getElementById("floatingCalendarPopover");
+      if (pop) pop.classList.add("hidden");
+      calCallback = null;
+    };
+
+    document.addEventListener("pointerdown", (e) => {
+      const pop = document.getElementById("floatingCalendarPopover");
+      if (!pop || pop.classList.contains("hidden")) return;
+      if (!pop.contains(e.target)) {
+        closeFloatingCalendar();
+      }
+    });
+
+    window.shiftCalendarMonth = (delta) => {
+      calMonth += delta;
+      if (calMonth < 0) {
+        calMonth = 11;
+        calYear -= 1;
+      } else if (calMonth > 11) {
+        calMonth = 0;
+        calYear += 1;
+      }
+      renderFloatingCalendar();
+    };
+
+    window.selectCalendarDate = (dateStr) => {
+      const cb = calCallback;
+      closeFloatingCalendar();
+      if (typeof cb === "function") cb(dateStr);
+    };
+
+    function renderFloatingCalendar() {
+      document.getElementById("calMonthTitle").textContent = `${calYear}年${calMonth + 1}月`;
+      const jsDay = new Date(calYear, calMonth, 1).getDay();
+      const firstDayOffset = jsDay === 0 ? 6 : jsDay - 1;
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+      const prevMonthDays = new Date(calYear, calMonth, 0).getDate();
+      const todayStr = getTodayStr();
+
+      let cells = "";
+
+      for (let i = firstDayOffset - 1; i >= 0; i--) {
+        const d = prevMonthDays - i;
+        const pm = calMonth === 0 ? 12 : calMonth;
+        const py = calMonth === 0 ? calYear - 1 : calYear;
+        const fullStr = `${py}-${String(pm).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        cells += `<button type="button" onclick="selectCalendarDate('${fullStr}')"
+          class="h-7 rounded-md text-slate-300 hover:bg-slate-100 flex items-center justify-center transition">${d}</button>`;
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const mStr = String(calMonth + 1).padStart(2, "0");
+        const dStr = String(d).padStart(2, "0");
+        const fullStr = `${calYear}-${mStr}-${dStr}`;
+        const isSelected = fullStr === calSelectedDate;
+        const isToday = fullStr === todayStr;
+
+        let cls = "h-7 rounded-md transition flex items-center justify-center ";
+        if (isSelected) {
+          cls += "bg-slate-200 text-slate-900 font-bold";
+        } else if (isToday) {
+          cls += "text-blue-600 font-bold hover:bg-blue-50";
+        } else {
+          cls += "text-slate-700 font-medium hover:bg-slate-100";
+        }
+
+        cells += `<button type="button" onclick="selectCalendarDate('${fullStr}')" class="${cls}">${d}</button>`;
+      }
+
+      const totalCells = firstDayOffset + daysInMonth;
+      const trailing = (7 - (totalCells % 7)) % 7;
+      for (let d = 1; d <= trailing; d++) {
+        const nm = calMonth === 11 ? 1 : calMonth + 2;
+        const ny = calMonth === 11 ? calYear + 1 : calYear;
+        const fullStr = `${ny}-${String(nm).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+        cells += `<button type="button" onclick="selectCalendarDate('${fullStr}')"
+          class="h-7 rounded-md text-slate-300 hover:bg-slate-100 flex items-center justify-center transition">${d}</button>`;
+      }
+
+      document.getElementById("calDaysGrid").innerHTML = cells;
+    }
+
+    window.handleAddSelectChange = (side, selectEl) => {
+      if (selectEl.value === "pick_calendar") {
+        selectEl.value = lastValidSelectVal[side];
+        const defaultCalDate = pendingCustomDate[side] || getDateStrOfWeekDay(getMondayDateStr(weekOffset), todayDow);
+        openFloatingCalendar(selectEl, defaultCalDate, (pickedDateStr) => {
+          pendingCustomDate[side] = pickedDateStr;
+          const opt = document.getElementById(`customSelectedOpt${side}`);
+          if (opt) {
+            opt.hidden = false;
+            opt.textContent = `📅 ${formatMonthDayCN(pickedDateStr)}`;
+          }
+          selectEl.value = "custom_selected";
+          lastValidSelectVal[side] = "custom_selected";
+        });
+      } else {
+        lastValidSelectVal[side] = selectEl.value;
+        if (selectEl.value !== "custom_selected") {
+          pendingCustomDate[side] = "";
+          const opt = document.getElementById(`customSelectedOpt${side}`);
+          if (opt) opt.hidden = true;
+        }
+      }
+    };
+
+    function setSyncStatus(status) {
+      const badge = document.getElementById("syncStatusBadge");
+      const dot = document.getElementById("syncDot");
+      const text = document.getElementById("syncText");
+      if (status === "connected") {
+        badge.className = "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200";
+        dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500";
+        text.textContent = "已同步";
+      } else if (status === "syncing") {
+        badge.className = "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200";
+        dot.className = "w-1.5 h-1.5 rounded-full bg-blue-500 sync-dot";
+        text.textContent = "同步中...";
+      } else {
+        badge.className = "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200";
+        dot.className = "w-1.5 h-1.5 rounded-full bg-rose-500";
+        text.textContent = "连接异常";
+      }
+    }
+
+    function connectRoom(roomId) {
+      if (unsubscribe) unsubscribe();
+      setSyncStatus("syncing");
+      const roomRef = ref(db, `rooms/${roomId}`);
+
+      unsubscribe = onValue(roomRef, (snapshot) => {
+        const val = snapshot.val();
+        isRemoteUpdating = true;
+
+        if (val) {
+          const subjectDims = {
+            gaodai: Array.isArray(val.userA?.subjectDims?.gaodai) ? val.userA.subjectDims.gaodai : [...DEFAULT_DIMS_BY_SUBJECT.gaodai],
+            shufen: Array.isArray(val.userA?.subjectDims?.shufen) ? val.userA.subjectDims.shufen : [...DEFAULT_DIMS_BY_SUBJECT.shufen],
+            other: Array.isArray(val.userA?.subjectDims?.other) ? val.userA.subjectDims.other : [...DEFAULT_DIMS_BY_SUBJECT.other]
+          };
+          const rawChaptersA = Array.isArray(val.userA?.chapters) ? val.userA.chapters : [];
+
+          state = {
+            examDate: val.examDate || defaultData.examDate,
+            userA: {
+              name: val.userA?.name || defaultData.userA.name,
+              subjectDims,
+              dailyHabits: val.userA?.dailyHabits !== undefined
+                ? normalizeDailyHabits(val.userA.dailyHabits)
+                : JSON.parse(JSON.stringify(defaultData.userA.dailyHabits)),
+              weeklyPlans: normalizeWeeklyPlans(val.userA?.weeklyPlans),
+              chapters: rawChaptersA.map(ch => normalizeChapterA(ch, subjectDims)),
+              freeLogs: normalizeFreeLogs(val.userA?.freeLogs),
+              note: val.userA?.note || "",
+              likes: val.userA?.likes || 0
+            },
+            userB: {
+              name: val.userB?.name || defaultData.userB.name,
+              dailyHabits: val.userB?.dailyHabits !== undefined
+                ? normalizeDailyHabits(val.userB.dailyHabits)
+                : JSON.parse(JSON.stringify(defaultData.userB.dailyHabits)),
+              weeklyPlans: normalizeWeeklyPlans(val.userB?.weeklyPlans),
+              targetRounds: val.userB?.targetRounds || 3,
+              chapters: Array.isArray(val.userB?.chapters) ? val.userB.chapters.filter(Boolean) : [],
+              freeLogs: normalizeFreeLogs(val.userB?.freeLogs),
+              note: val.userB?.note || "",
+              likes: val.userB?.likes || 0
+            }
+          };
+        } else {
+          state = JSON.parse(JSON.stringify(defaultData));
+          set(roomRef, state);
+        }
+
+        renderAll();
+        setSyncStatus("connected");
+        isRemoteUpdating = false;
+      }, (error) => {
+        console.error(error);
+        setSyncStatus("error");
+      });
+    }
+
+    function pushState() {
+      if (isRemoteUpdating) return;
+      setSyncStatus("syncing");
+      const roomRef = ref(db, `rooms/${currentRoom}`);
+      set(roomRef, state)
+        .then(() => setSyncStatus("connected"))
+        .catch(() => setSyncStatus("error"));
+    }
+
+    function syncUserNameDisplays() {
+      const nameA = state.userA.name || "用户A";
+      const nameB = state.userB.name || "用户B";
+
+      ["userAName_tasks", "userAName_progress"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && document.activeElement !== el) el.value = nameA;
+      });
+      ["userBName_tasks", "userBName_progress"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && document.activeElement !== el) el.value = nameB;
+      });
+
+      document.getElementById("todayTitleA").textContent = `${nameA} · 今日能量`;
+      document.getElementById("todayTitleB").textContent = `${nameB} · 今日能量`;
+      document.getElementById("weekListTitleA").textContent = `${nameA} · 任务排期`;
+      document.getElementById("weekListTitleB").textContent = `${nameB} · 任务排期`;
+    }
+
+    window.updateProfileFrom = (side, rawVal) => {
+      const trimmed = rawVal.trim();
+      if (side === "A") {
+        state.userA.name = trimmed || "用户A";
+      } else {
+        state.userB.name = trimmed || "用户B";
+      }
+      syncUserNameDisplays();
+      renderWeeklyPanel();
+      pushState();
+      showToast(`已更新昵称为「${side === "A" ? state.userA.name : state.userB.name}」`);
+    };
+
+    function renderAll() {
+      applySectionTabUI();
+
+      const target = new Date(state.examDate + "T08:30:00");
+      const now = new Date();
+      const diffDays = Math.max(0, Math.ceil((target - now) / (1000 * 60 * 60 * 24)));
+      document.getElementById("countdownDays").textContent = diffDays;
+
+      syncUserNameDisplays();
+
+      const noteAEl = document.getElementById("noteA");
+      if (document.activeElement !== noteAEl) noteAEl.value = state.userA.note;
+      const noteBEl = document.getElementById("noteB");
+      if (document.activeElement !== noteBEl) noteBEl.value = state.userB.note;
+
+      document.getElementById("likesA").textContent = state.userA.likes;
+      document.getElementById("likesB").textContent = state.userB.likes;
+
+      renderWeeklyPanel();
+      renderUserA();
+      renderUserB();
+      syncStickyBarOffset();
+    }
+
+    // ==================== 公共课（英语 & 政治）自由日志组件渲染 ====================
+    function renderFreeLogsAccordions(side) {
+      const user = side === "A" ? state.userA : state.userB;
+      const openMap = side === "A" ? openGroupsA : openGroupsB;
+      const toggleFn = side === "A" ? "toggleSubjectGroupA" : "toggleSubjectGroupB";
+
+      const freeSubjects = [
+        {
+          key: "english",
+          title: "英语",
+          icon: "📖",
+          placeholder: "记录英语学习内容...",
+          headerStyle: "bg-teal-50/90 hover:bg-teal-100/70 border-teal-200",
+          badgeStyle: "bg-teal-100 text-teal-800",
+          btnStyle: "bg-teal-600 hover:bg-teal-700 text-white",
+          tagStyle: "bg-teal-50 text-teal-700 border-teal-200"
+        },
+        {
+          key: "politics",
+          title: "政治",
+          icon: "🚩",
+          placeholder: "记录政治学习内容...",
+          headerStyle: "bg-rose-50/80 hover:bg-rose-100/60 border-rose-200",
+          badgeStyle: "bg-rose-100 text-rose-800",
+          btnStyle: "bg-rose-600 hover:bg-rose-700 text-white",
+          tagStyle: "bg-rose-50 text-rose-700 border-rose-200"
+        }
+      ];
+
+      return freeSubjects.map(sub => {
+        const isOpen = !!openMap[sub.key];
+        const logs = Array.isArray(user.freeLogs?.[sub.key]) ? user.freeLogs[sub.key] : [];
+
+        const listHtml = logs.length === 0
+          ? `<div class="text-center py-3 text-xs text-slate-400">暂无记录</div>`
+          : logs.map((item, idx) => {
+              const isEditing = editingFreeLog && editingFreeLog.side === side && editingFreeLog.subjKey === sub.key && editingFreeLog.idx === idx;
+              if (isEditing) {
+                return `
+                  <div class="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg border border-blue-500 ring-2 ring-blue-100 bg-white">
+                    <input id="editFreeLog_${side}_${sub.key}_${idx}" type="text" value="${escapeHtml(item.text)}"
+                      onkeydown="handleFreeLogEditKey(event, '${side}', '${sub.key}', ${idx})"
+                      onblur="saveFreeLogEdit('${side}', '${sub.key}', ${idx})"
+                      class="flex-1 min-w-0 text-xs font-medium text-slate-800 bg-transparent focus:outline-none" />
+                    <button onmousedown="event.preventDefault(); saveFreeLogEdit('${side}', '${sub.key}', ${idx})"
+                      class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold shrink-0 transition">
+                      保存
+                    </button>
+                    <button onmousedown="event.preventDefault(); cancelFreeLogEdit()"
+                      class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium shrink-0 transition">
+                      取消
+                    </button>
+                  </div>
+                `;
+              }
+
+              return `
+                <div class="flex items-start justify-between gap-2 px-2.5 py-2 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:border-slate-300 transition">
+                  <div class="flex items-start gap-2 flex-1 min-w-0">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 mt-0.5 ${sub.tagStyle}">
+                      ${formatMonthDayCN(item.date) || "今日"}
+                    </span>
+                    <span ondblclick="startEditFreeLog('${side}', '${sub.key}', ${idx})"
+                      class="text-xs font-medium text-slate-700 break-words leading-relaxed cursor-pointer">
+                      ${escapeHtml(item.text)}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-0.5 shrink-0">
+                    <button onclick="startEditFreeLog('${side}', '${sub.key}', ${idx})" type="button"
+                      class="text-slate-400 hover:text-blue-600 text-xs px-1 py-0.5 rounded hover:bg-slate-200/60 transition">✎</button>
+                    <button onclick="deleteFreeLog('${side}', '${sub.key}', ${idx})" type="button"
+                      class="text-slate-300 hover:text-rose-500 text-sm px-1 transition">&times;</button>
+                  </div>
+                </div>
+              `;
+            }).join("");
+
+        const bodyHtml = !isOpen ? "" : `
+          <div class="p-2.5 space-y-2 bg-white border-t border-slate-100">
+            <div class="flex gap-1.5">
+              <input id="freeLogInput_${side}_${sub.key}" type="text" onkeydown="if(event.key==='Enter') addFreeLog('${side}', '${sub.key}')"
+                placeholder="${sub.placeholder}"
+                class="flex-1 min-w-0 text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:bg-white focus:outline-none focus:border-blue-500" />
+              <button onclick="addFreeLog('${side}', '${sub.key}')"
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition ${sub.btnStyle}">
+                + 记录
+              </button>
+            </div>
+            <div class="space-y-1.5">
+              ${listHtml}
+            </div>
+          </div>
+        `;
+
+        return `
+          <div class="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+            <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b transition ${sub.headerStyle}">
+              <button onclick="${toggleFn}('${sub.key}')" class="flex items-center gap-2 flex-1 min-w-0 text-left">
+                <span class="text-xs text-slate-700 font-mono w-3.5 shrink-0">${isOpen ? "▼" : "▶"}</span>
+                <span class="text-sm font-bold text-slate-800 shrink-0">${sub.icon} ${sub.title}</span>
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${sub.badgeStyle}">${logs.length}条</span>
+              </button>
+            </div>
+            ${bodyHtml}
+          </div>
+        `;
+      }).join("");
+    }
+
+    window.addFreeLog = (side, subjKey) => {
+      const input = document.getElementById(`freeLogInput_${side}_${subjKey}`);
+      const text = input ? input.value.trim() : "";
+      if (!text) return;
+
+      const user = side === "A" ? state.userA : state.userB;
+      if (!user.freeLogs) user.freeLogs = { english: [], politics: [] };
+      if (!Array.isArray(user.freeLogs[subjKey])) user.freeLogs[subjKey] = [];
+
+      user.freeLogs[subjKey].unshift({
+        id: "fl_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        date: getTodayStr(),
+        text
+      });
+
+      input.value = "";
+      editingFreeLog = null;
+      if (side === "A") renderUserA();
+      else renderUserB();
+      pushState();
+      showToast(`已记录${subjKey === "english" ? "英语" : "政治"}`);
+    };
+
+    window.startEditFreeLog = (side, subjKey, idx) => {
+      editingFreeLog = { side, subjKey, idx };
+      if (side === "A") renderUserA();
+      else renderUserB();
+      requestAnimationFrame(() => {
+        const input = document.getElementById(`editFreeLog_${side}_${subjKey}_${idx}`);
+        if (input) {
+          input.focus();
+          input.select();
+        }
+      });
+    };
+
+    window.saveFreeLogEdit = (side, subjKey, idx) => {
+      if (!editingFreeLog || editingFreeLog.side !== side || editingFreeLog.subjKey !== subjKey || editingFreeLog.idx !== idx) return;
+      const input = document.getElementById(`editFreeLog_${side}_${subjKey}_${idx}`);
+      const newText = input ? input.value.trim() : "";
+      editingFreeLog = null;
+
+      const user = side === "A" ? state.userA : state.userB;
+      const item = user.freeLogs?.[subjKey]?.[idx];
+      if (item && newText && newText !== item.text) {
+        item.text = newText;
+        if (side === "A") renderUserA();
+        else renderUserB();
+        pushState();
+        showToast("已更新");
+      } else {
+        if (side === "A") renderUserA();
+        else renderUserB();
+      }
+    };
+
+    window.cancelFreeLogEdit = () => {
+      const side = editingFreeLog?.side;
+      editingFreeLog = null;
+      if (side === "A") renderUserA();
+      else if (side === "B") renderUserB();
+    };
+
+    window.handleFreeLogEditKey = (e, side, subjKey, idx) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        saveFreeLogEdit(side, subjKey, idx);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancelFreeLogEdit();
+      }
+    };
+
+    window.deleteFreeLog = (side, subjKey, idx) => {
+      const user = side === "A" ? state.userA : state.userB;
+      if (!user.freeLogs?.[subjKey]) return;
+      editingFreeLog = null;
+      user.freeLogs[subjKey].splice(idx, 1);
+      if (side === "A") renderUserA();
+      else renderUserB();
+      pushState();
+    };
+
+    // ==================== 任务排期面板 & 周大进度条 & 自动折叠已过天数 ====================
+    window.shiftWeek = (delta) => {
+      editingWeekTask = null;
+      editingDailyHabit = null;
+      weekOffset += delta;
+      renderWeeklyPanel();
+    };
+
+    window.resetWeek = () => {
+      editingWeekTask = null;
+      editingDailyHabit = null;
+      weekOffset = 0;
+      renderWeeklyPanel();
+    };
+
+    window.toggleDateGroupCollapse = (groupUid, defaultCollapsed = false) => {
+      const currentVal = (groupUid in collapsedDateGroups) ? collapsedDateGroups[groupUid] : defaultCollapsed;
+      collapsedDateGroups[groupUid] = !currentVal;
+      renderWeeklyPanel();
+    };
+
+    function computeUserWeekTotals(user, mondayStr) {
+      const list = (user.weeklyPlans && Array.isArray(user.weeklyPlans[mondayStr])) ? user.weeklyPlans[mondayStr] : [];
+      const planTotal = list.length;
+      const planDone = list.filter(t => t.done).length;
+
+      const habits = Array.isArray(user.dailyHabits) ? user.dailyHabits : [];
+      const habitTotal = habits.length * 7;
+      let habitDone = 0;
+      habits.forEach(h => {
+        const arr = h.checks?.[mondayStr] || [];
+        for (let d = 0; d < 7; d++) {
+          if (arr[d]) habitDone++;
+        }
+      });
+
+      return {
+        combinedTotal: planTotal + habitTotal,
+        combinedDone: planDone + habitDone
+      };
+    }
+
+    function renderWeeklyPanel() {
+      const mondayStr = getMondayDateStr(weekOffset);
+      const sundayStr = getDateStrOfWeekDay(mondayStr, 7);
+      document.getElementById("weekRangeLabel").textContent = `${formatShortSlash(mondayStr)} ~ ${formatShortSlash(sundayStr)}`;
+
+      const nameA = state.userA.name || "用户A";
+      const nameB = state.userB.name || "用户B";
+
+      const statsA = computeUserWeekTotals(state.userA, mondayStr);
+      const statsB = computeUserWeekTotals(state.userB, mondayStr);
+      const grandTotal = statsA.combinedTotal + statsB.combinedTotal;
+      const grandDone = statsA.combinedDone + statsB.combinedDone;
+      const grandPct = grandTotal === 0 ? 0 : Math.round((grandDone / grandTotal) * 100);
+
+      const pctA = statsA.combinedTotal === 0 ? 0 : Math.round((statsA.combinedDone / statsA.combinedTotal) * 100);
+      const pctB = statsB.combinedTotal === 0 ? 0 : Math.round((statsB.combinedDone / statsB.combinedTotal) * 100);
+
+      document.getElementById("bigWeekProgressBar").style.width = `${grandPct}%`;
+      document.getElementById("bigWeekProgressLabel").textContent = `${grandPct}% (${grandDone}/${grandTotal})`;
+      document.getElementById("bigWeekSubA").textContent = `${nameA}: ${pctA}% (${statsA.combinedDone}/${statsA.combinedTotal})`;
+      document.getElementById("bigWeekSubB").textContent = `${nameB}: ${pctB}% (${statsB.combinedDone}/${statsB.combinedTotal})`;
+      document.getElementById("tabBadge_tasks").textContent = `${grandPct}%`;
+
+      [25, 50, 75, 100].forEach(mark => {
+        const el = document.getElementById(`tickLabel${mark}`);
+        if (!el) return;
+        const passed = grandPct >= mark + (mark === 100 ? 0 : 3);
+        el.className = passed
+          ? "text-[10px] font-mono font-bold text-white/95 drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)] transition-colors"
+          : "text-[10px] font-mono font-bold text-slate-400 transition-colors";
+      });
+
+      renderTodayAndCatchupCard("A");
+      renderTodayAndCatchupCard("B");
+      renderDailyHabitsSide("A", mondayStr);
+      renderDailyHabitsSide("B", mondayStr);
+      renderUserWeekSide("A", mondayStr);
+      renderUserWeekSide("B", mondayStr);
+      syncStickyBarOffset();
+    }
+
+    function renderTodayAndCatchupCard(side) {
+      const user = side === "A" ? state.userA : state.userB;
+      const userName = user.name || (side === "A" ? "用户A" : "用户B");
+      const thisMondayStr = getMondayDateStr(0);
+
+      const thisWeekList = (user.weeklyPlans && Array.isArray(user.weeklyPlans[thisMondayStr])) ? user.weeklyPlans[thisMondayStr] : [];
+      const todayTasks = thisWeekList.filter(t => {
+        const effDow = t.customDate ? getIsoDowFromDateStr(t.customDate) : Number(t.dayOfWeek ?? 0);
+        return effDow === todayDow;
+      });
+      const todayPlanTotal = todayTasks.length;
+      const todayPlanDone = todayTasks.filter(t => t.done).length;
+
+      const habits = Array.isArray(user.dailyHabits) ? user.dailyHabits : [];
+      const todayHabitTotal = habits.length;
+      const todayHabitDone = habits.filter(h => !!(h.checks?.[thisMondayStr]?.[todayDow - 1])).length;
+
+      const totalToday = todayPlanTotal + todayHabitTotal;
+      const doneToday = todayPlanDone + todayHabitDone;
+      const todayPct = totalToday === 0 ? 0 : Math.round((doneToday / totalToday) * 100);
+
+      const duo = getDuolingoState(todayPct, totalToday, doneToday, userName);
+      document.getElementById(`duoMascotEmoji${side}`).textContent = duo.emoji;
+      document.getElementById(`duoMascotTag${side}`).textContent = duo.tag;
+      document.getElementById(`todayPctText${side}`).textContent = `${todayPct}% (${doneToday}/${totalToday})`;
+      document.getElementById(`duoEncourageMsg${side}`).textContent = duo.msg;
+      document.getElementById(`todayProgressBar${side}`).style.width = `${todayPct}%`;
+
+      const { doneCatchupCount, overdueItems } = computeCatchupStats(user);
+      document.getElementById(`catchupDoneCount${side}`).textContent = doneCatchupCount;
+      document.getElementById(`catchupOverdueCount${side}`).textContent = overdueItems.length;
+
+      const overdueBtn = document.getElementById(`catchupOverdueBtn${side}`);
+      if (overdueItems.length > 0) {
+        overdueBtn.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 hover:bg-rose-200/80 text-rose-700 border border-rose-200 transition";
+      } else {
+        overdueBtn.className = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-white text-emerald-700 border border-emerald-200 transition";
+      }
+
+      const drawer = document.getElementById(`overdueDrawer${side}`);
+      if (!overdueDrawerOpen[side]) {
+        drawer.classList.add("hidden");
+      } else {
+        drawer.classList.remove("hidden");
+        if (overdueItems.length === 0) {
+          drawer.innerHTML = `<div class="text-[11px] text-emerald-700 font-medium py-1">暂无待补做任务</div>`;
+        } else {
+          drawer.innerHTML = `
+            <div class="flex items-center justify-between text-[11px] font-bold text-rose-700 mb-1">
+              <span>逾期未完成：</span>
+              <button onclick="toggleOverdueDrawer('${side}')" class="text-slate-400 hover:text-slate-600">收起 ▲</button>
+            </div>
+            ${overdueItems.map(({ wkMonday, idx, task, plannedDate }) => `
+              <div class="flex items-center justify-between gap-2 bg-white/90 px-2.5 py-1.5 rounded-lg border border-rose-200/80 text-xs">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="px-1.5 py-0.2 rounded bg-rose-50 text-rose-600 border border-rose-200 text-[10px] font-mono shrink-0">${formatMonthDayCN(plannedDate)}</span>
+                  <span class="font-medium text-slate-700 truncate">${escapeHtml(task.text)}</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button onclick="completeOverdueTask('${side}', '${wkMonday}', ${idx})" type="button"
+                    class="px-2 py-0.5 rounded bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-semibold transition">
+                    ✓ 补打卡
+                  </button>
+                  <button onclick="rescheduleOverdueToToday('${side}', '${wkMonday}', ${idx})" type="button"
+                    class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium transition">
+                    移到今天
+                  </button>
+                </div>
+              </div>
+            `).join("")}
+          `;
+        }
+      }
+    }
+
+    function renderDailyHabitsSide(side, mondayStr) {
+      const user = side === "A" ? state.userA : state.userB;
+      const habits = Array.isArray(user.dailyHabits) ? user.dailyHabits : [];
+      const container = document.getElementById(`dailyHabitList${side}`);
+
+      if (habits.length === 0) {
+        container.innerHTML = `<div class="text-[11px] text-slate-400 py-1">暂无每日打卡项</div>`;
+        return;
+      }
+
+      const activeBtnClass = side === "A"
+        ? "bg-indigo-600 text-white border-indigo-600 shadow-2xs"
+        : "bg-amber-500 text-white border-amber-500 shadow-2xs";
+      const focusRingColor = side === "A" ? "border-indigo-500 ring-2 ring-indigo-100" : "border-amber-500 ring-2 ring-amber-100";
+
+      container.innerHTML = habits.map((habit, idx) => {
+        const isEditing = editingDailyHabit && editingDailyHabit.side === side && editingDailyHabit.idx === idx;
+        if (isEditing) {
+          return `
+            <div class="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg border bg-white ${focusRingColor}">
+              <input id="editDailyInput_${side}_${idx}" type="text" value="${escapeHtml(habit.text)}"
+                onkeydown="handleDailyHabitEditKey(event, '${side}', ${idx})"
+                onblur="saveDailyHabitEdit('${side}', ${idx})"
+                class="flex-1 min-w-0 text-xs font-medium text-slate-800 bg-transparent focus:outline-none" />
+              <button onmousedown="event.preventDefault(); saveDailyHabitEdit('${side}', ${idx})"
+                class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold shrink-0 transition">
+                保存
+              </button>
+              <button onmousedown="event.preventDefault(); cancelDailyHabitEdit()"
+                class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium shrink-0 transition">
+                取消
+              </button>
+            </div>
+          `;
+        }
+
+        const weekChecks = (habit.checks && Array.isArray(habit.checks[mondayStr])) ? habit.checks[mondayStr] : [];
+        const doneCount = [0,1,2,3,4,5,6].filter(d => !!weekChecks[d]).length;
+
+        const dayPills = SHORT_DAY_CHARS.map((ch, dIdx) => {
+          const checked = !!weekChecks[dIdx];
+          const isToday = weekOffset === 0 && (dIdx + 1) === todayDow;
+          return `
+            <button onclick="toggleDailyHabitDay('${side}', ${idx}, ${dIdx})" type="button"
+              title="周${ch}${isToday ? '（今天）' : ''}"
+              class="w-5 h-5 rounded text-[10px] font-bold border transition flex items-center justify-center ${
+                checked
+                  ? activeBtnClass
+                  : isToday
+                    ? "bg-white text-slate-700 border-slate-400 hover:border-slate-500"
+                    : "bg-slate-50 text-slate-400 border-slate-200 hover:border-slate-300"
+              }">
+              ${ch}
+            </button>
+          `;
+        }).join("");
+
+        return `
+          <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-slate-50/70 border border-slate-200/80">
+            <div class="flex items-center gap-1.5 flex-1 min-w-0">
+              <span ondblclick="startEditDailyHabit('${side}', ${idx})"
+                class="text-xs font-semibold text-slate-700 truncate cursor-pointer">
+                ${escapeHtml(habit.text)}
+              </span>
+              <span class="text-[10px] font-mono text-slate-400 shrink-0">${doneCount}/7</span>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              ${dayPills}
+              <button onclick="startEditDailyHabit('${side}', ${idx})" type="button"
+                class="text-slate-400 hover:text-blue-600 text-xs px-1 ml-0.5 rounded hover:bg-slate-200/60 transition">✎</button>
+              <button onclick="deleteDailyHabit('${side}', ${idx})" type="button"
+                class="text-slate-300 hover:text-rose-500 text-sm px-0.5 transition">&times;</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    window.addDailyHabit = (side) => {
+      const input = document.getElementById(`dailyHabitInput${side}`);
+      const text = input.value.trim();
+      if (!text) return;
+      const user = side === "A" ? state.userA : state.userB;
+      if (!Array.isArray(user.dailyHabits)) user.dailyHabits = [];
+      user.dailyHabits.push({
+        id: "dh_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        text,
+        checks: {}
+      });
+      input.value = "";
+      editingDailyHabit = null;
+      renderWeeklyPanel();
+      pushState();
+      showToast(`已添加：${text}`);
+    };
+
+    window.toggleDailyHabitDay = (side, habitIdx, dayIdx) => {
+      const user = side === "A" ? state.userA : state.userB;
+      const habit = user.dailyHabits?.[habitIdx];
+      if (!habit) return;
+      const mondayStr = getMondayDateStr(weekOffset);
+      if (!habit.checks || typeof habit.checks !== "object") habit.checks = {};
+      if (!Array.isArray(habit.checks[mondayStr])) habit.checks[mondayStr] = [false, false, false, false, false, false, false];
+      const nextVal = !habit.checks[mondayStr][dayIdx];
+      habit.checks[mondayStr][dayIdx] = nextVal;
+      if (nextVal && weekOffset === 0 && (dayIdx + 1) === todayDow) {
+        triggerMascotCelebrate(side);
+      }
+      renderWeeklyPanel();
+      pushState();
+    };
+
+    window.startEditDailyHabit = (side, idx) => {
+      editingDailyHabit = { side, idx };
+      renderWeeklyPanel();
+      requestAnimationFrame(() => {
+        const input = document.getElementById(`editDailyInput_${side}_${idx}`);
+        if (input) {
+          input.focus();
+          input.select();
+        }
+      });
+    };
+
+    window.saveDailyHabitEdit = (side, idx) => {
+      if (!editingDailyHabit || editingDailyHabit.side !== side || editingDailyHabit.idx !== idx) return;
+      const input = document.getElementById(`editDailyInput_${side}_${idx}`);
+      const newText = input ? input.value.trim() : "";
+      editingDailyHabit = null;
+      const user = side === "A" ? state.userA : state.userB;
+      const habit = user.dailyHabits?.[idx];
+      if (habit && newText && newText !== habit.text) {
+        habit.text = newText;
+        renderWeeklyPanel();
+        pushState();
+        showToast("已更新");
+      } else {
+        renderWeeklyPanel();
+      }
+    };
+
+    window.cancelDailyHabitEdit = () => {
+      editingDailyHabit = null;
+      renderWeeklyPanel();
+    };
+
+    window.handleDailyHabitEditKey = (e, side, idx) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        saveDailyHabitEdit(side, idx);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancelDailyHabitEdit();
+      }
+    };
+
+    window.deleteDailyHabit = (side, idx) => {
+      if (!confirm("确定删除该每日打卡项吗？")) return;
+      const user = side === "A" ? state.userA : state.userB;
+      if (!Array.isArray(user.dailyHabits)) return;
+      editingDailyHabit = null;
+      user.dailyHabits.splice(idx, 1);
+      renderWeeklyPanel();
+      pushState();
+    };
+
+    function renderSingleTaskRow(side, task, idx, plannedDateStr) {
+      const checkColor = side === "A" ? "bg-blue-600 border-blue-600 text-white" : "bg-orange-500 border-orange-500 text-white";
+      const focusRingColor = side === "A" ? "border-blue-500 ring-2 ring-blue-100" : "border-orange-500 ring-2 ring-orange-100";
+      const isEditing = editingWeekTask && editingWeekTask.side === side && editingWeekTask.idx === idx;
+
+      if (isEditing) {
+        return `
+          <div class="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg border bg-white ${focusRingColor}">
+            <input id="editWeekInput_${side}_${idx}" type="text" value="${escapeHtml(task.text)}"
+              onkeydown="handleWeekTaskEditKey(event, '${side}', ${idx})"
+              onblur="saveWeekTaskEdit('${side}', ${idx})"
+              class="flex-1 min-w-0 text-xs font-medium text-slate-800 bg-transparent focus:outline-none" />
+            <button onmousedown="event.preventDefault(); saveWeekTaskEdit('${side}', ${idx})"
+              class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold shrink-0 transition">
+              保存
+            </button>
+            <button onmousedown="event.preventDefault(); cancelWeekTaskEdit()"
+              class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium shrink-0 transition">
+              取消
+            </button>
+          </div>
+        `;
+      }
+
+      let completedBadge = "";
+      if (task.done && task.completedDate) {
+        const isLate = plannedDateStr && task.completedDate > plannedDateStr;
+        const dateCN = formatMonthDayCN(task.completedDate);
+        completedBadge = isLate
+          ? `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 shrink-0">补做 · ${dateCN}</span>`
+          : `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">✓ ${dateCN}</span>`;
+      }
+
+      const dowNum = Number(task.dayOfWeek ?? 0);
+      const curVal = (dowNum >= 1 && dowNum <= 7) ? String(dowNum) : (task.customDate ? "custom_current" : "0");
+
+      return `
+        <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border transition ${
+          task.done ? "bg-slate-50/90 border-slate-200/70" : "bg-white border-slate-200 hover:border-slate-300"
+        }">
+          <div class="flex items-center gap-2 flex-1 min-w-0 select-none">
+            <button onclick="toggleWeekTask('${side}', ${idx})" type="button"
+              class="w-4 h-4 rounded flex items-center justify-center text-[11px] font-bold border transition shrink-0 ${
+                task.done ? checkColor : "bg-white border-slate-300 hover:border-slate-400"
+              }">
+              ${task.done ? "✓" : ""}
+            </button>
+            <span onclick="toggleWeekTask('${side}', ${idx})" ondblclick="startEditWeekTask('${side}', ${idx})"
+              class="text-xs font-medium truncate cursor-pointer ${task.done ? "line-through text-slate-400" : "text-slate-700"}">
+              ${escapeHtml(task.text)}
+            </span>
+            ${completedBadge}
+          </div>
+
+          <div class="flex items-center gap-1 shrink-0">
+            <button onclick="startEditWeekTask('${side}', ${idx})" type="button"
+              class="text-slate-400 hover:text-blue-600 text-xs px-1 py-0.5 rounded hover:bg-slate-100 transition">
+              ✎
+            </button>
+            <select onchange="handleExistingTaskScheduleChange('${side}', ${idx}, this)"
+              class="text-[11px] bg-slate-50 border border-slate-200 rounded px-1 py-0.5 text-slate-600 focus:outline-none max-w-[106px]">
+              ${[1,2,3,4,5,6,7].map(d => `<option value="${d}" ${curVal === String(d) ? "selected" : ""}>${DAY_LABELS[d]}</option>`).join("")}
+              ${curVal === "custom_current" ? `<option value="custom_current" selected>📅 ${formatMonthDayCN(task.customDate)}</option>` : ""}
+              ${curVal === "0" ? `<option value="0" selected>未设日期</option>` : ""}
+              <option value="pick_calendar">📅 更多(日历)...</option>
+            </select>
+            <button onclick="deleteWeekTask('${side}', ${idx})" class="text-slate-300 hover:text-rose-500 text-sm px-1 transition">&times;</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderUserWeekSide(side, mondayStr) {
+      const user = side === "A" ? state.userA : state.userB;
+      const list = (user.weeklyPlans && Array.isArray(user.weeklyPlans[mondayStr])) ? user.weeklyPlans[mondayStr] : [];
+
+      const total = list.length;
+      const done = list.filter(t => t.done).length;
+      const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+
+      document.getElementById(`weekProgressText${side}`).textContent = `${pct}% (${done}/${total})`;
+      document.getElementById(`weekProgressBar${side}`).style.width = `${pct}%`;
+
+      const container = document.getElementById(`weekTaskList${side}`);
+      if (list.length === 0) {
+        container.innerHTML = `<div class="text-center py-4 text-xs text-slate-400">暂无排期任务</div>`;
+        return;
+      }
+
+      const dayOrder = [1, 2, 3, 4, 5, 6, 7];
+      const weekDaysHtml = dayOrder.map(dayNum => {
+        const indexedItems = list
+          .map((task, idx) => {
+            const effDow = task.customDate ? getIsoDowFromDateStr(task.customDate) : Number(task.dayOfWeek ?? 0);
+            return { task, idx, effDow };
+          })
+          .filter(({ effDow }) => effDow === dayNum);
+
+        if (indexedItems.length === 0) return "";
+
+        const plannedDateStr = getDateStrOfWeekDay(mondayStr, dayNum);
+        const groupUid = `${side}_${mondayStr}_dow_${dayNum}`;
+
+        const isPastInCurrentWeek = (weekOffset === 0 && dayNum < todayDow);
+        const isTodayInCurrentWeek = (weekOffset === 0 && dayNum === todayDow);
+        const isCollapsed = (groupUid in collapsedDateGroups) ? collapsedDateGroups[groupUid] : isPastInCurrentWeek;
+        const doneInGroup = indexedItems.filter(x => x.task.done).length;
+
+        const statusBadge = isTodayInCurrentWeek
+          ? `<span class="px-1.5 py-0.2 rounded bg-violet-100 text-violet-700 text-[10px] font-bold">今天</span>`
+          : isPastInCurrentWeek
+            ? `<span class="px-1.5 py-0.2 rounded bg-slate-200/70 text-slate-500 text-[10px] font-medium">已过</span>`
+            : "";
+
+        return `
+          <div class="rounded-lg border overflow-hidden ${isTodayInCurrentWeek ? "bg-violet-50/35 border-violet-200/90" : "bg-slate-50/70 border-slate-200/70"}">
+            <button onclick="toggleDateGroupCollapse('${groupUid}', ${isPastInCurrentWeek})" type="button"
+              class="w-full px-2.5 py-1.5 text-xs flex items-center justify-between hover:bg-slate-100/70 transition text-left">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-mono text-slate-500">${isCollapsed ? "▶" : "▼"}</span>
+                <span class="font-bold ${isPastInCurrentWeek ? "text-slate-500" : "text-slate-700"}">${DAY_LABELS[dayNum]}</span>
+                <span class="text-[11px] font-mono text-slate-400">(${formatShortSlash(plannedDateStr)})</span>
+                ${statusBadge}
+              </div>
+              <span class="text-[11px] text-slate-400 font-medium">${doneInGroup}/${indexedItems.length}</span>
+            </button>
+            ${isCollapsed ? "" : `
+              <div class="px-2 pb-2 space-y-1.5">
+                ${indexedItems.map(({ task, idx }) => renderSingleTaskRow(side, task, idx, plannedDateStr)).join("")}
+              </div>
+            `}
+          </div>
+        `;
+      }).join("");
+
+      const legacyUnscheduled = list
+        .map((task, idx) => ({ task, idx }))
+        .filter(({ task }) => !task.customDate && Number(task.dayOfWeek ?? 0) === 0);
+
+      let legacyHtml = "";
+      if (legacyUnscheduled.length > 0) {
+        const groupUid = `${side}_${mondayStr}_dow_0`;
+        const isCollapsed = (groupUid in collapsedDateGroups) ? collapsedDateGroups[groupUid] : false;
+        legacyHtml = `
+          <div class="rounded-lg bg-slate-50/70 border border-slate-200/70 overflow-hidden">
+            <button onclick="toggleDateGroupCollapse('${groupUid}', false)" type="button"
+              class="w-full px-2.5 py-1.5 text-xs flex items-center justify-between hover:bg-slate-100/70 transition text-left">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] font-mono text-slate-500">${isCollapsed ? "▶" : "▼"}</span>
+                <span class="font-bold text-slate-600">📌 未设日期</span>
+              </div>
+              <span class="text-[11px] text-slate-400">${legacyUnscheduled.filter(x => x.task.done).length}/${legacyUnscheduled.length}</span>
+            </button>
+            ${isCollapsed ? "" : `
+              <div class="px-2 pb-2 space-y-1.5">
+                ${legacyUnscheduled.map(({ task, idx }) => renderSingleTaskRow(side, task, idx, "")).join("")}
+              </div>
+            `}
+          </div>
+        `;
+      }
+
+      container.innerHTML = weekDaysHtml + legacyHtml;
+    }
+
+    window.handleExistingTaskScheduleChange = (side, idx, selectEl) => {
+      const user = side === "A" ? state.userA : state.userB;
+      const curMondayStr = getMondayDateStr(weekOffset);
+      const list = user.weeklyPlans?.[curMondayStr];
+      const task = list?.[idx];
+      if (!task) return;
+
+      const val = selectEl.value;
+      if (val === "pick_calendar") {
+        const curDate = task.customDate || getDateStrOfWeekDay(curMondayStr, Number(task.dayOfWeek || 1)) || getTodayStr();
+        selectEl.value = String(Number(task.dayOfWeek || getIsoDowFromDateStr(curDate)));
+        openFloatingCalendar(selectEl, curDate, (pickedDateStr) => {
+          const targetMondayStr = getMondayOfDateStr(pickedDateStr);
+          const targetDow = getIsoDowFromDateStr(pickedDateStr);
+          task.customDate = pickedDateStr;
+          task.dayOfWeek = targetDow;
+
+          if (targetMondayStr !== curMondayStr) {
+            list.splice(idx, 1);
+            if (!Array.isArray(user.weeklyPlans[targetMondayStr])) user.weeklyPlans[targetMondayStr] = [];
+            user.weeklyPlans[targetMondayStr].push(task);
+          }
+
+          collapsedDateGroups[`${side}_${targetMondayStr}_dow_${targetDow}`] = false;
+          renderWeeklyPanel();
+          pushState();
+          showToast(`已改期至 ${formatMonthDayCN(pickedDateStr)}（${DAY_LABELS[targetDow]}）`);
+        });
+      } else {
+        const newDow = Number(val);
+        task.dayOfWeek = newDow;
+        task.customDate = getDateStrOfWeekDay(curMondayStr, newDow);
+        collapsedDateGroups[`${side}_${curMondayStr}_dow_${newDow}`] = false;
+        renderWeeklyPanel();
+        pushState();
+      }
+    };
+
+    window.startEditWeekTask = (side, idx) => {
+      editingWeekTask = { side, idx };
+      renderWeeklyPanel();
+      requestAnimationFrame(() => {
+        const input = document.getElementById(`editWeekInput_${side}_${idx}`);
+        if (input) {
+          input.focus();
+          input.select();
+        }
+      });
+    };
+
+    window.saveWeekTaskEdit = (side, idx) => {
+      if (!editingWeekTask || editingWeekTask.side !== side || editingWeekTask.idx !== idx) return;
+      const input = document.getElementById(`editWeekInput_${side}_${idx}`);
+      const newText = input ? input.value.trim() : "";
+      editingWeekTask = null;
+
+      const user = side === "A" ? state.userA : state.userB;
+      const mondayStr = getMondayDateStr(weekOffset);
+      const task = user.weeklyPlans?.[mondayStr]?.[idx];
+
+      if (task && newText && newText !== task.text) {
+        task.text = newText;
+        renderWeeklyPanel();
+        pushState();
+        showToast("已更新");
+      } else {
+        renderWeeklyPanel();
+      }
+    };
+
+    window.cancelWeekTaskEdit = () => {
+      editingWeekTask = null;
+      renderWeeklyPanel();
+    };
+
+    window.handleWeekTaskEditKey = (e, side, idx) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        saveWeekTaskEdit(side, idx);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancelWeekTaskEdit();
+      }
+    };
+
+    window.addWeekTask = (side) => {
+      closeFloatingCalendar();
+      const input = document.getElementById(`weekTaskInput${side}`);
+      const select = document.getElementById(`weekDaySelect${side}`);
+      const text = input.value.trim();
+      if (!text) return;
+
+      const user = side === "A" ? state.userA : state.userB;
+      const viewMondayStr = getMondayDateStr(weekOffset);
+      if (!user.weeklyPlans) user.weeklyPlans = {};
+
+      const isCustom = select.value === "custom_selected";
+      let targetMondayStr = viewMondayStr;
+      let targetDow = Number(select.value);
+      let chosenDate = "";
+
+      if (isCustom) {
+        chosenDate = pendingCustomDate[side] || getTodayStr();
+        targetMondayStr = getMondayOfDateStr(chosenDate);
+        targetDow = getIsoDowFromDateStr(chosenDate);
+      } else {
+        chosenDate = getDateStrOfWeekDay(viewMondayStr, targetDow);
+      }
+
+      if (!Array.isArray(user.weeklyPlans[targetMondayStr])) {
+        user.weeklyPlans[targetMondayStr] = [];
+      }
+
+      user.weeklyPlans[targetMondayStr].push({
+        id: "wt_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        text,
+        dayOfWeek: targetDow,
+        customDate: chosenDate,
+        done: false,
+        completedDate: ""
+      });
+
+      collapsedDateGroups[`${side}_${targetMondayStr}_dow_${targetDow}`] = false;
+
+      input.value = "";
+      editingWeekTask = null;
+      renderWeeklyPanel();
+      pushState();
+
+      if (targetMondayStr !== viewMondayStr) {
+        const targetSundayStr = getDateStrOfWeekDay(targetMondayStr, 7);
+        showToast(`已排期至 ${formatMonthDayCN(chosenDate)}（${formatShortSlash(targetMondayStr)}~${formatShortSlash(targetSundayStr)}）`);
+      }
+    };
+
+    window.toggleWeekTask = (side, idx) => {
+      const user = side === "A" ? state.userA : state.userB;
+      const mondayStr = getMondayDateStr(weekOffset);
+      const task = user.weeklyPlans?.[mondayStr]?.[idx];
+      if (!task) return;
+
+      task.done = !task.done;
+      if (task.done) {
+        task.completedDate = getTodayStr();
+        const effDow = task.customDate ? getIsoDowFromDateStr(task.customDate) : Number(task.dayOfWeek ?? 0);
+        if (weekOffset === 0 && effDow === todayDow) {
+          triggerMascotCelebrate(side);
+        }
+        const plannedDate = task.customDate || getDateStrOfWeekDay(mondayStr, effDow);
+        const isLate = plannedDate && task.completedDate > plannedDate;
+        showToast(isLate
+          ? `已补做（${formatMonthDayCN(task.completedDate)}完成）`
+          : `已完成（${formatMonthDayCN(task.completedDate)}）`);
+      } else {
+        task.completedDate = "";
+      }
+      renderWeeklyPanel();
+      pushState();
+    };
+
+    window.deleteWeekTask = (side, idx) => {
+      const user = side === "A" ? state.userA : state.userB;
+      const mondayStr = getMondayDateStr(weekOffset);
+      if (!user.weeklyPlans?.[mondayStr]) return;
+      editingWeekTask = null;
+      user.weeklyPlans[mondayStr].splice(idx, 1);
+      renderWeeklyPanel();
+      pushState();
+    };
+
+    // ==================== 左栏：高代/数分折叠菜单 + 英语/政治自由记录 ====================
+    window.toggleSubjectGroupA = (groupKey) => {
+      openGroupsA[groupKey] = !openGroupsA[groupKey];
+      renderUserA();
+    };
+
+    window.toggleCustomizeChapterA = (realIdx) => {
+      customizingChapterIdxA = (customizingChapterIdxA === realIdx) ? null : realIdx;
+      renderUserA();
+    };
+
+    window.toggleChapterItemA = (realIdx, itemIdx) => {
+      const ch = state.userA.chapters[realIdx];
+      if (!ch || !Array.isArray(ch.items) || !ch.items[itemIdx]) return;
+      ch.items[itemIdx].done = !ch.items[itemIdx].done;
+      renderUserA();
+      pushState();
+    };
+
+    window.removeChapterItemA = (realIdx, itemIdx) => {
+      const ch = state.userA.chapters[realIdx];
+      if (!ch || !Array.isArray(ch.items)) return;
+      if (ch.items.length <= 1) {
+        showToast("每章至少保留 1 个打卡项");
+        return;
+      }
+      ch.items.splice(itemIdx, 1);
+      renderUserA();
+      pushState();
+    };
+
+    window.addChapterItemA = (realIdx, presetLabel = null) => {
+      const ch = state.userA.chapters[realIdx];
+      if (!ch) return;
+      let label = presetLabel;
+      if (!label) {
+        const input = document.getElementById(`newChItemInput_${realIdx}`);
+        label = input ? input.value.trim() : "";
+      }
+      if (!label) return;
+      if (!Array.isArray(ch.items)) ch.items = [];
+      ch.items.push({ label, done: false });
+      renderUserA();
+      pushState();
+      showToast(`已添加：${label}`);
+    };
+
+    function renderUserA() {
+      const container = document.getElementById("accordionContainerA");
+      const allChapters = state.userA.chapters;
+      const subjectDims = state.userA.subjectDims || DEFAULT_DIMS_BY_SUBJECT;
+
+      let totalChecks = 0;
+      let doneChecks = 0;
+      allChapters.forEach(ch => {
+        const items = Array.isArray(ch.items) ? ch.items : [];
+        items.forEach(it => {
+          totalChecks++;
+          if (it.done) doneChecks++;
+        });
+      });
+
+      const totalPct = totalChecks === 0 ? 0 : Math.round((doneChecks / totalChecks) * 100);
+      document.getElementById("progressTextA").textContent = `${totalPct}% (${doneChecks}/${totalChecks})`;
+      document.getElementById("progressBarA").style.width = `${totalPct}%`;
+
+      const groups = [
+        {
+          key: "gaodai",
+          title: "高等代数",
+          icon: "📐",
+          headerStyle: "bg-sky-50/90 hover:bg-sky-100/70 border-sky-200",
+          badgeStyle: "bg-sky-100 text-sky-800",
+          barTrack: "bg-sky-200/70",
+          barFill: "bg-sky-600",
+          pctColor: "text-sky-700",
+          activeBtn: "bg-sky-600 text-white border-sky-600 shadow-2xs",
+          list: []
+        },
+        {
+          key: "shufen",
+          title: "数学分析",
+          icon: "∫",
+          headerStyle: "bg-indigo-50/90 hover:bg-indigo-100/70 border-indigo-200",
+          badgeStyle: "bg-indigo-100 text-indigo-800",
+          barTrack: "bg-indigo-200/70",
+          barFill: "bg-indigo-600",
+          pctColor: "text-indigo-700",
+          activeBtn: "bg-indigo-600 text-white border-indigo-600 shadow-2xs",
+          list: []
+        },
+        {
+          key: "other",
+          title: "其他章节",
+          icon: "📚",
+          headerStyle: "bg-slate-100/80 hover:bg-slate-200/60 border-slate-200",
+          badgeStyle: "bg-slate-200 text-slate-700",
+          barTrack: "bg-slate-300/70",
+          barFill: "bg-slate-600",
+          pctColor: "text-slate-700",
+          activeBtn: "bg-blue-600 text-white border-blue-600 shadow-2xs",
+          list: []
+        }
+      ];
+
+      allChapters.forEach((ch, realIdx) => {
+        const k = getSubjectKeyA(ch.title);
+        const targetGroup = groups.find(g => g.key === k) || groups[2];
+        targetGroup.list.push({ ch, realIdx });
+      });
+
+      const chapterAccordionsHtml = groups
+        .filter(g => g.list.length > 0)
+        .map(g => {
+          const isOpen = !!openGroupsA[g.key];
+          const defaultDims = subjectDims[g.key] || [];
+
+          let gTotal = 0, gDone = 0;
+          g.list.forEach(({ ch }) => {
+            const items = Array.isArray(ch.items) ? ch.items : [];
+            items.forEach(it => {
+              gTotal++;
+              if (it.done) gDone++;
+            });
+          });
+          const gPct = gTotal === 0 ? 0 : Math.round((gDone / gTotal) * 100);
+
+          const bodyHtml = !isOpen ? "" : `
+            <div class="p-2.5 space-y-2 bg-white border-t border-slate-100">
+              ${g.list.map(({ ch, realIdx }, idxInGroup) => {
+                const items = Array.isArray(ch.items) ? ch.items : [];
+                const isAllDone = items.length > 0 && items.every(it => !!it.done);
+                const isCustomizing = customizingChapterIdxA === realIdx;
+                const cleanTitle = ch.title.replace(/^(高代|数分)-/, "");
+
+                const dimButtons = items.map((it, itemIdx) => {
+                  const checked = !!it.done;
+                  if (isCustomizing) {
+                    return `
+                      <div class="inline-flex items-center rounded-lg text-xs font-medium border border-amber-300 bg-amber-50/70 text-slate-700 overflow-hidden">
+                        <span class="px-2 py-1">${escapeHtml(it.label)}</span>
+                        <button onclick="removeChapterItemA(${realIdx}, ${itemIdx})" type="button"
+                          class="px-1.5 py-1 bg-amber-100/80 hover:bg-rose-500 hover:text-white text-rose-600 font-bold border-l border-amber-300 transition">
+                          &times;
+                        </button>
+                      </div>
+                    `;
+                  }
+                  return `
+                    <button onclick="toggleChapterItemA(${realIdx}, ${itemIdx})"
+                      class="px-2.5 py-1 rounded-lg text-xs font-medium border transition flex items-center gap-1 ${
+                        checked ? g.activeBtn : "bg-slate-50 text-slate-600 border-slate-200 hover:border-blue-300"
+                      }">
+                      <span>${checked ? "✓" : "○"}</span>
+                      <span>${escapeHtml(it.label)}</span>
+                    </button>
+                  `;
+                }).join("");
+
+                const existingLabels = new Set(items.map(it => it.label));
+                const missingDefaults = defaultDims.filter(lbl => !existingLabels.has(lbl));
+                const customEditorHtml = !isCustomizing ? "" : `
+                  <div class="mt-2 pt-2 border-t border-dashed border-slate-200 space-y-1.5">
+                    ${missingDefaults.length > 0 ? `
+                      <div class="flex flex-wrap items-center gap-1">
+                        <span class="text-[10px] text-slate-400">补回：</span>
+                        ${missingDefaults.map(lbl => `
+                          <button onclick="addChapterItemA(${realIdx}, '${escapeHtml(lbl)}')" type="button"
+                            class="px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-[11px] font-medium transition">
+                            + ${escapeHtml(lbl)}
+                          </button>
+                        `).join("")}
+                      </div>
+                    ` : ""}
+                    <div class="flex gap-1.5">
+                      <input id="newChItemInput_${realIdx}" type="text"
+                        onkeydown="if(event.key==='Enter') addChapterItemA(${realIdx})"
+                        placeholder="新增本章任务..."
+                        class="flex-1 min-w-0 text-[11px] bg-white border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-blue-500" />
+                      <button onclick="addChapterItemA(${realIdx})" type="button"
+                        class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold rounded-lg shrink-0 transition">
+                        + 添加
+                      </button>
+                    </div>
+                  </div>
+                `;
+
+                return `
+                  <div class="p-2.5 rounded-xl border transition ${isAllDone ? "bg-blue-50/40 border-blue-200" : "bg-slate-50/40 border-slate-200/80 hover:border-blue-200"}">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                      <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                        <span class="text-xs font-bold ${isAllDone ? "text-blue-600" : "text-slate-400"}">#${idxInGroup + 1}</span>
+                        <span onclick="renameChapter('A', ${realIdx})" class="text-xs sm:text-sm font-semibold text-slate-800 truncate cursor-pointer hover:text-blue-600">
+                          ${escapeHtml(cleanTitle)}
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="toggleCustomizeChapterA(${realIdx})" type="button"
+                          class="text-[11px] px-1.5 py-0.5 rounded border transition ${
+                            isCustomizing
+                              ? "bg-amber-500 text-white border-amber-500 font-semibold"
+                              : "bg-white hover:bg-slate-100 text-slate-500 border-slate-200"
+                          }">
+                          ${isCustomizing ? "完成" : "✎ 调任务"}
+                        </button>
+                        <button onclick="deleteChapter('A', ${realIdx})" class="text-slate-300 hover:text-rose-500 text-sm px-1 transition">&times;</button>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5">
+                      ${dimButtons}
+                    </div>
+                    ${customEditorHtml}
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          `;
+
+          return `
+            <div class="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+              <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b transition ${g.headerStyle}">
+                <button onclick="toggleSubjectGroupA('${g.key}')" class="flex items-center gap-2 flex-1 min-w-0 text-left">
+                  <span class="text-xs text-slate-700 font-mono w-3.5 shrink-0">${isOpen ? "▼" : "▶"}</span>
+                  <span class="text-sm font-bold text-slate-800 shrink-0">${g.icon} ${g.title}</span>
+                  <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${g.badgeStyle}">${g.list.length}章</span>
+
+                  <div class="flex items-center gap-1.5 flex-1 min-w-[68px] max-w-[125px] ml-0.5">
+                    <div class="flex-1 h-2 rounded-full overflow-hidden ${g.barTrack}">
+                      <div class="h-full rounded-full transition-all duration-300 ${g.barFill}" style="width: ${gPct}%"></div>
+                    </div>
+                    <span class="text-[11px] font-bold shrink-0 ${g.pctColor}">${gPct}%</span>
+                  </div>
+                </button>
+
+                <button onclick="openSubjectDimModal('${g.key}', '${g.title}')"
+                  class="px-2 py-1 rounded-lg bg-white/90 hover:bg-white text-slate-700 border border-slate-200/90 text-[11px] font-semibold shrink-0 transition">
+                  ⚙️ 批量设置
+                </button>
+              </div>
+              ${bodyHtml}
+            </div>
+          `;
+        }).join("");
+
+      const freeLogsHtml = renderFreeLogsAccordions("A");
+      container.innerHTML = chapterAccordionsHtml + freeLogsHtml;
+    }
+
+    // ==================== 右栏：地理 4 科 + 英语/政治自由记录 ====================
+    window.toggleSubjectGroupB = (groupKey) => {
+      openGroupsB[groupKey] = !openGroupsB[groupKey];
+      renderUserB();
+    };
+
+    window.toggleCustomizeChapterB = (realIdx) => {
+      customizingChapterIdxB = (customizingChapterIdxB === realIdx) ? null : realIdx;
+      renderUserB();
+    };
+
+    window.setChapterTargetRoundsB = (realIdx, targetNum) => {
+      const ch = state.userB.chapters[realIdx];
+      if (!ch) return;
+      ch.targetRounds = targetNum;
+      if ((ch.round || 0) > targetNum) {
+        ch.round = targetNum;
+      }
+      renderUserB();
+      pushState();
+      showToast(`已设为 ${targetNum} 刷`);
+    };
+
+    window.addChapterForSubjectB = (prefix) => {
+      const title = prompt(`请输入【${prefix}】章节名称：`);
+      if (!title || !title.trim()) return;
+      const clean = title.trim().startsWith(prefix) ? title.trim() : `${prefix}-${title.trim()}`;
+      state.userB.chapters.push({
+        id: "b_" + Date.now(),
+        title: clean,
+        round: 0
+      });
+      const subjKey = getSubjectKeyB(clean);
+      openGroupsB[subjKey] = true;
+      renderUserB();
+      pushState();
+    };
+
+    function getChapterTargetB(ch, globalDefaultRounds) {
+      return Number(ch.targetRounds) > 0 ? Number(ch.targetRounds) : globalDefaultRounds;
+    }
+
+    function renderUserB() {
+      const container = document.getElementById("accordionContainerB");
+      const defaultMaxRounds = state.userB.targetRounds || 3;
+      document.getElementById("targetRoundBtn").textContent = `默认: ${defaultMaxRounds === 2 ? "二刷制" : "三刷制"}`;
+
+      const allChapters = state.userB.chapters;
+      let totalRounds = 0;
+      let doneRounds = 0;
+      allChapters.forEach(ch => {
+        const chTarget = getChapterTargetB(ch, defaultMaxRounds);
+        totalRounds += chTarget;
+        doneRounds += Math.min(ch.round || 0, chTarget);
+      });
+
+      const totalPct = totalRounds === 0 ? 0 : Math.round((doneRounds / totalRounds) * 100);
+      document.getElementById("progressTextB").textContent = `${totalPct}% (${doneRounds}/${totalRounds}轮)`;
+      document.getElementById("progressBarB").style.width = `${totalPct}%`;
+
+      const groups = [
+        {
+          key: "ziran",
+          title: "自然地理",
+          prefix: "自然地理",
+          icon: "🌍",
+          headerStyle: "bg-emerald-50/90 hover:bg-emerald-100/70 border-emerald-200",
+          badgeStyle: "bg-emerald-100 text-emerald-800",
+          barTrack: "bg-emerald-200/70",
+          barFill: "bg-emerald-600",
+          pctColor: "text-emerald-700",
+          activePill: "bg-emerald-600 text-white border-emerald-600 shadow-2xs",
+          alwaysShow: true,
+          list: []
+        },
+        {
+          key: "renwen",
+          title: "人文地理",
+          prefix: "人文地理",
+          icon: "🏙️",
+          headerStyle: "bg-amber-50/90 hover:bg-amber-100/70 border-amber-200",
+          badgeStyle: "bg-amber-100 text-amber-800",
+          barTrack: "bg-amber-200/70",
+          barFill: "bg-amber-500",
+          pctColor: "text-amber-700",
+          activePill: "bg-amber-500 text-white border-amber-500 shadow-2xs",
+          alwaysShow: true,
+          list: []
+        },
+        {
+          key: "gis",
+          title: "地理信息",
+          prefix: "地理信息",
+          icon: "🗺️",
+          headerStyle: "bg-orange-50/90 hover:bg-orange-100/70 border-orange-200",
+          badgeStyle: "bg-orange-100 text-orange-800",
+          barTrack: "bg-orange-200/70",
+          barFill: "bg-orange-500",
+          pctColor: "text-orange-700",
+          activePill: "bg-orange-500 text-white border-orange-500 shadow-2xs",
+          alwaysShow: true,
+          list: []
+        },
+        {
+          key: "yaogan",
+          title: "遥感",
+          prefix: "遥感",
+          icon: "🛰️",
+          headerStyle: "bg-rose-50/90 hover:bg-rose-100/70 border-rose-200",
+          badgeStyle: "bg-rose-100 text-rose-800",
+          barTrack: "bg-rose-200/70",
+          barFill: "bg-rose-500",
+          pctColor: "text-rose-700",
+          activePill: "bg-rose-500 text-white border-rose-500 shadow-2xs",
+          alwaysShow: true,
+          list: []
+        },
+        {
+          key: "other",
+          title: "其他章节",
+          prefix: "其他",
+          icon: "📚",
+          headerStyle: "bg-slate-100/80 hover:bg-slate-200/60 border-slate-200",
+          badgeStyle: "bg-slate-200 text-slate-700",
+          barTrack: "bg-slate-300/70",
+          barFill: "bg-slate-600",
+          pctColor: "text-slate-700",
+          activePill: "bg-orange-500 text-white border-orange-500 shadow-2xs",
+          alwaysShow: false,
+          list: []
+        }
+      ];
+
+      allChapters.forEach((ch, realIdx) => {
+        const k = getSubjectKeyB(ch.title);
+        const targetGroup = groups.find(g => g.key === k) || groups[4];
+        targetGroup.list.push({ ch, realIdx });
+      });
+
+      const getRoundLabels = (target) => {
+        if (target === 1) return ["一刷通关"];
+        if (target === 2) return ["一刷", "二刷通关"];
+        return ["一刷", "二刷", "三刷通关"];
+      };
+
+      const geoAccordionsHtml = groups
+        .filter(g => g.alwaysShow || g.list.length > 0)
+        .map(g => {
+          const isOpen = !!openGroupsB[g.key];
+          let gTotal = 0;
+          let gDone = 0;
+          g.list.forEach(({ ch }) => {
+            const chTarget = getChapterTargetB(ch, defaultMaxRounds);
+            gTotal += chTarget;
+            gDone += Math.min(ch.round || 0, chTarget);
+          });
+          const gPct = gTotal === 0 ? 0 : Math.round((gDone / gTotal) * 100);
+
+          const bodyHtml = !isOpen ? "" : `
+            <div class="p-2.5 space-y-2 bg-white border-t border-slate-100">
+              ${g.list.length === 0
+                ? `<div class="text-center py-4 text-xs text-slate-400">暂无章节</div>`
+                : g.list.map(({ ch, realIdx }, idxInGroup) => {
+                    const chTarget = getChapterTargetB(ch, defaultMaxRounds);
+                    const curRound = Math.min(ch.round || 0, chTarget);
+                    const isCompleted = curRound >= chTarget;
+                    const isCustomizing = customizingChapterIdxB === realIdx;
+                    const isCustomTarget = Number(ch.targetRounds) > 0 && Number(ch.targetRounds) !== defaultMaxRounds;
+                    const cleanTitle = ch.title.replace(/^(自然地理|人文地理|地理信息|遥感|自地|人地|GIS|RS)-/i, "");
+
+                    const roundLabels = getRoundLabels(chTarget);
+                    const pills = roundLabels.map((label, rIdx) => {
+                      const roundNum = rIdx + 1;
+                      const active = curRound >= roundNum;
+                      return `
+                        <button onclick="setRoundB(${realIdx}, ${roundNum})"
+                          class="flex-1 py-1 px-2 rounded-lg text-xs font-semibold border transition text-center ${
+                            active
+                              ? g.activePill
+                              : "bg-slate-50 text-slate-500 border-slate-200 hover:border-orange-300"
+                          }">
+                          ${active ? "🔥 " : ""}${label}
+                        </button>
+                      `;
+                    }).join("");
+
+                    const customTargetEditorHtml = !isCustomizing ? "" : `
+                      <div class="mt-2 pt-2 border-t border-dashed border-orange-200/80 flex items-center justify-between gap-2">
+                        <span class="text-[11px] text-slate-500">刷题轮次：</span>
+                        <div class="flex items-center gap-1.5">
+                          ${[1, 2, 3].map(n => `
+                            <button onclick="setChapterTargetRoundsB(${realIdx}, ${n})" type="button"
+                              class="px-2.5 py-0.5 rounded-md text-[11px] font-semibold border transition ${
+                                chTarget === n
+                                  ? "bg-orange-500 text-white border-orange-500"
+                                  : "bg-white hover:bg-orange-50 text-slate-600 border-slate-200"
+                              }">
+                              ${n}刷
+                            </button>
+                          `).join("")}
+                        </div>
+                      </div>
+                    `;
+
+                    return `
+                      <div class="p-2.5 rounded-xl border transition ${isCompleted ? "bg-orange-50/40 border-orange-200" : "bg-slate-50/40 border-slate-200/80 hover:border-orange-200"}">
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                          <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                            <span class="text-xs font-bold ${isCompleted ? "text-orange-600" : "text-slate-400"}">#${idxInGroup + 1}</span>
+                            <span onclick="renameChapter('B', ${realIdx})" class="text-xs sm:text-sm font-semibold text-slate-800 truncate cursor-pointer hover:text-orange-600">
+                              ${escapeHtml(cleanTitle)}
+                            </span>
+                            ${isCustomTarget ? `<span class="px-1.5 py-0.2 rounded bg-orange-100/80 text-orange-700 text-[10px] font-bold shrink-0">${chTarget}刷</span>` : ""}
+                          </div>
+                          <div class="flex items-center gap-1 shrink-0">
+                            <button onclick="toggleCustomizeChapterB(${realIdx})" type="button"
+                              class="text-[11px] px-1.5 py-0.5 rounded border transition ${
+                                isCustomizing
+                                  ? "bg-orange-500 text-white border-orange-500 font-semibold"
+                                  : "bg-white hover:bg-orange-50 text-slate-500 border-slate-200"
+                              }">
+                              ${isCustomizing ? "完成" : "✎ 调轮次"}
+                            </button>
+                            <button onclick="deleteChapter('B', ${realIdx})" class="text-slate-300 hover:text-rose-500 text-sm px-1 transition">&times;</button>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                          ${pills}
+                        </div>
+                        ${customTargetEditorHtml}
+                      </div>
+                    `;
+                  }).join("")
+              }
+            </div>
+          `;
+
+          return `
+            <div class="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+              <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b transition ${g.headerStyle}">
+                <button onclick="toggleSubjectGroupB('${g.key}')" class="flex items-center gap-2 flex-1 min-w-0 text-left">
+                  <span class="text-xs text-slate-700 font-mono w-3.5 shrink-0">${isOpen ? "▼" : "▶"}</span>
+                  <span class="text-sm font-bold text-slate-800 shrink-0">${g.icon} ${g.title}</span>
+                  <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${g.badgeStyle}">${g.list.length}章</span>
+
+                  <div class="flex items-center gap-1.5 flex-1 min-w-[68px] max-w-[130px] ml-0.5">
+                    <div class="flex-1 h-2 rounded-full overflow-hidden ${g.barTrack}">
+                      <div class="h-full rounded-full transition-all duration-300 ${g.barFill}" style="width: ${gPct}%"></div>
+                    </div>
+                    <span class="text-[11px] font-bold shrink-0 ${g.pctColor}">${gPct}%</span>
+                  </div>
+                </button>
+
+                <button onclick="addChapterForSubjectB('${g.prefix}')"
+                  class="px-2 py-1 rounded-lg bg-white/90 hover:bg-white text-slate-700 border border-slate-200/90 text-[11px] font-semibold shrink-0 transition">
+                  + 章
+                </button>
+              </div>
+              ${bodyHtml}
+            </div>
+          `;
+        }).join("");
+
+      const freeLogsHtml = renderFreeLogsAccordions("B");
+      container.innerHTML = geoAccordionsHtml + freeLogsHtml;
+    }
+
+    // ==================== 弹窗与基础操作 ====================
+    window.openSubjectDimModal = (subjKey, subjName) => {
+      editingSubjectKey = subjKey;
+      document.getElementById("subjectDimTitle").textContent = `批量设置【${subjName}】打卡项`;
+      renderSubjectDimList();
+      document.getElementById("subjectDimModal").classList.remove("hidden");
+      document.getElementById("subjectDimModal").classList.add("flex");
+    };
+
+    window.closeSubjectDimModal = () => {
+      document.getElementById("subjectDimModal").classList.add("hidden");
+      document.getElementById("subjectDimModal").classList.remove("flex");
+    };
+
+    function renderSubjectDimList() {
+      const dims = state.userA.subjectDims?.[editingSubjectKey] || [];
+      document.getElementById("subjectDimList").innerHTML = dims.map((label, i) => `
+        <div class="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-xs">
+          <span class="font-medium text-slate-700">${escapeHtml(label)}</span>
+          ${dims.length > 1 ? `<button onclick="removeSubjectDimension(${i})" class="text-rose-500 hover:underline">删除</button>` : ""}
+        </div>
+      `).join("");
+    }
+
+    window.addSubjectDimension = () => {
+      const input = document.getElementById("newSubjectDimInput");
+      const val = input.value.trim();
+      if (!val) return;
+      if (!state.userA.subjectDims) state.userA.subjectDims = JSON.parse(JSON.stringify(DEFAULT_DIMS_BY_SUBJECT));
+      if (!Array.isArray(state.userA.subjectDims[editingSubjectKey])) state.userA.subjectDims[editingSubjectKey] = [];
+
+      state.userA.subjectDims[editingSubjectKey].push(val);
+      state.userA.chapters.forEach(ch => {
+        if (getSubjectKeyA(ch.title) === editingSubjectKey) {
+          if (!Array.isArray(ch.items)) ch.items = [];
+          if (!ch.items.some(it => it.label === val)) {
+            ch.items.push({ label: val, done: false });
+          }
+        }
+      });
+
+      input.value = "";
+      renderSubjectDimList();
+      renderUserA();
+      pushState();
+    };
+
+    window.removeSubjectDimension = (dimIdx) => {
+      const dims = state.userA.subjectDims?.[editingSubjectKey];
+      if (!dims || dims.length <= 1) return;
+      const removedLabel = dims[dimIdx];
+      dims.splice(dimIdx, 1);
+      state.userA.chapters.forEach(ch => {
+        if (getSubjectKeyA(ch.title) === editingSubjectKey && Array.isArray(ch.items) && ch.items.length > 1) {
+          const foundIdx = ch.items.findIndex(it => it.label === removedLabel);
+          if (foundIdx !== -1) ch.items.splice(foundIdx, 1);
+        }
+      });
+      renderSubjectDimList();
+      renderUserA();
+      pushState();
+    };
+
+    window.openBulkModal = (side) => {
+      currentBulkSide = side;
+      const inputEl = document.getElementById("bulkInput");
+      const presetBtn = document.getElementById("presetBtnA");
+      const hintEl = document.getElementById("bulkHintText");
+      if (side === "A") {
+        presetBtn.classList.remove("hidden");
+        hintEl.textContent = "以「高代-」或「数分-」开头会自动归入对应学科。";
+        inputEl.value = PRESET_CHAPTERS_A.join("\n");
+      } else {
+        presetBtn.classList.add("hidden");
+        hintEl.textContent = "以「自然地理-」「人文地理-」「地理信息-」「遥感-」开头会自动归入对应学科。";
+        inputEl.value = "自然地理-第一章-地球与地质基础\n人文地理-第一章-绪论\n地理信息-第一章-导论\n遥感-第一章-遥感基本概念";
+      }
+      document.getElementById("bulkModal").classList.remove("hidden");
+      document.getElementById("bulkModal").classList.add("flex");
+    };
+
+    window.closeBulkModal = () => {
+      document.getElementById("bulkModal").classList.add("hidden");
+      document.getElementById("bulkModal").classList.remove("flex");
+    };
+
+    window.fillDefaultPresetA = () => {
+      document.getElementById("bulkInput").value = PRESET_CHAPTERS_A.join("\n");
+    };
+
+    window.confirmBulkImport = () => {
+      const raw = document.getElementById("bulkInput").value;
+      const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      if (lines.length === 0) return showToast("请输入至少一章");
+
+      if (currentBulkSide === "A") {
+        const existingTitles = new Set(state.userA.chapters.map(c => c.title));
+        const subjectDims = state.userA.subjectDims || DEFAULT_DIMS_BY_SUBJECT;
+        let added = 0;
+        lines.forEach((title, idx) => {
+          if (!existingTitles.has(title)) {
+            const subj = getSubjectKeyA(title);
+            const dims = subjectDims[subj] || DEFAULT_DIMS_BY_SUBJECT[subj];
+            state.userA.chapters.push({
+              id: "a_" + Date.now() + "_" + idx,
+              title,
+              items: dims.map(label => ({ label, done: false }))
+            });
+            added++;
+          }
+        });
+        showToast(`已导入 ${added} 章`);
+      } else {
+        const existingTitles = new Set(state.userB.chapters.map(c => c.title));
+        let added = 0;
+        lines.forEach((title, idx) => {
+          if (!existingTitles.has(title)) {
+            state.userB.chapters.push({
+              id: "b_" + Date.now() + "_" + idx,
+              title,
+              round: 0
+            });
+            added++;
+          }
+        });
+        showToast(`已导入 ${added} 章`);
+      }
+
+      closeBulkModal();
+      renderAll();
+      pushState();
+    };
+
+    window.switchRoom = () => {
+      const val = document.getElementById("roomInput").value.trim().replace(/[.#$/[\]]/g, "_");
+      if (!val) return showToast("请输入有效的房间号");
+      currentRoom = val;
+      localStorage.setItem("kaoyan_room", currentRoom);
+      const newUrl = `${window.location.pathname}?room=${encodeURIComponent(currentRoom)}`;
+      window.history.replaceState({}, "", newUrl);
+      connectRoom(currentRoom);
+      showToast(`已进入房间：${currentRoom}`);
+    };
+
+    window.copyInviteLink = () => {
+      const url = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoom)}`;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast("已复制链接");
+      });
+    };
+
+    window.editExamDate = () => {
+      const next = prompt("初试日期（YYYY-MM-DD）：", state.examDate);
+      if (next && /^\d{4}-\d{2}-\d{2}$/.test(next.trim())) {
+        state.examDate = next.trim();
+        renderAll();
+        pushState();
+      }
+    };
+
+    window.updateNote = (side) => {
+      if (side === "A") state.userA.note = document.getElementById("noteA").value;
+      else state.userB.note = document.getElementById("noteB").value;
+      pushState();
+    };
+
+    window.likePartner = (side) => {
+      if (side === "A") state.userA.likes = (state.userA.likes || 0) + 1;
+      else state.userB.likes = (state.userB.likes || 0) + 1;
+      renderAll();
+      pushState();
+      showToast("已点赞 ❤️");
+    };
+
+    window.setRoundB = (chIdx, roundNum) => {
+      const ch = state.userB.chapters[chIdx];
+      if (!ch) return;
+      ch.round = (ch.round === roundNum) ? roundNum - 1 : roundNum;
+      renderAll();
+      pushState();
+    };
+
+    window.toggleTargetRounds = () => {
+      const nextDefault = state.userB.targetRounds === 3 ? 2 : 3;
+      state.userB.targetRounds = nextDefault;
+      state.userB.chapters.forEach(ch => {
+        delete ch.targetRounds;
+        if ((ch.round || 0) > nextDefault) ch.round = nextDefault;
+      });
+      renderAll();
+      pushState();
+      showToast(`默认已切为${nextDefault === 2 ? "二刷制" : "三刷制"}`);
+    };
+
+    window.addChapter = (side) => {
+      const promptHint = side === "A"
+        ? "输入章节名称（以 高代- 或 数分- 开头可自动归类）："
+        : "输入章节名称（以 自然地理- / 人文地理- / 地理信息- / 遥感- 开头可自动归类）：";
+      const title = prompt(promptHint);
+      if (!title || !title.trim()) return;
+      const cleanTitle = title.trim();
+      if (side === "A") {
+        const subj = getSubjectKeyA(cleanTitle);
+        const dims = state.userA.subjectDims?.[subj] || DEFAULT_DIMS_BY_SUBJECT[subj];
+        state.userA.chapters.push({
+          id: "a_" + Date.now(),
+          title: cleanTitle,
+          items: dims.map(label => ({ label, done: false }))
+        });
+      } else {
+        state.userB.chapters.push({
+          id: "b_" + Date.now(),
+          title: cleanTitle,
+          round: 0
+        });
+        openGroupsB[getSubjectKeyB(cleanTitle)] = true;
+      }
+      renderAll();
+      pushState();
+    };
+
+    window.renameChapter = (side, idx) => {
+      const list = side === "A" ? state.userA.chapters : state.userB.chapters;
+      const next = prompt("修改章节名称：", list[idx].title);
+      if (next && next.trim()) {
+        list[idx].title = next.trim();
+        renderAll();
+        pushState();
+      }
+    };
+
+    window.deleteChapter = (side, idx) => {
+      if (!confirm("确定删除该章节吗？")) return;
+      if (side === "A") {
+        customizingChapterIdxA = null;
+        state.userA.chapters.splice(idx, 1);
+      } else {
+        customizingChapterIdxB = null;
+        state.userB.chapters.splice(idx, 1);
+      }
+      renderAll();
+      pushState();
+    };
+
+    window.openReportModal = () => {
+      const todayLabel = new Date().toLocaleDateString("zh-CN", { month: "long", day: "numeric" });
+      const todayStr = getTodayStr();
+      const days = document.getElementById("countdownDays").textContent;
+      const mondayStr = getMondayDateStr(0);
+
+      const formatDailySummary = (user) => {
+        const habits = user.dailyHabits || [];
+        if (!habits.length) return "";
+        return habits.map(h => {
+          const arr = h.checks?.[mondayStr] || [];
+          const cnt = [0,1,2,3,4,5,6].filter(d => !!arr[d]).length;
+          const todayDone = !!arr[todayDow - 1];
+          return `  🔁 ${h.text}：今日${todayDone ? "✅" : "⬜"}（本周 ${cnt}/7）`;
+        }).join("\n") + "\n";
+      };
+
+      const formatWeekSummary = (user) => {
+        const list = user.weeklyPlans?.[mondayStr] || [];
+        if (!list.length) return "  · 本周暂无排期";
+        return list.map(t => {
+          const dayTag = t.customDate ? formatMonthDayCN(t.customDate) : DAY_LABELS[Number(t.dayOfWeek ?? 0)];
+          const doneTag = t.done && t.completedDate ? `（${formatMonthDayCN(t.completedDate)}）` : "";
+          return `  ${t.done ? "✅" : "⬜"} [${dayTag}] ${t.text}${doneTag}`;
+        }).join("\n");
+      };
+
+      const formatPublicCourses = (user) => {
+        const todayEng = (user.freeLogs?.english || []).filter(l => l.date === todayStr);
+        const todayPol = (user.freeLogs?.politics || []).filter(l => l.date === todayStr);
+        if (!todayEng.length && !todayPol.length) return "";
+        let str = "\n[公共课今日记录]\n";
+        todayEng.forEach(l => { str += `  📖 英语：${l.text}\n`; });
+        todayPol.forEach(l => { str += `  🚩 政治：${l.text}\n`; });
+        return str;
+      };
+
+      const pctA = document.getElementById("progressTextA").textContent;
+      const pctB = document.getElementById("progressTextB").textContent;
+      const catchupA = computeCatchupStats(state.userA);
+      const catchupB = computeCatchupStats(state.userB);
+
+      const activeA = state.userA.chapters.filter(c => (c.items || []).some(it => it.done));
+      const linesA = activeA.length
+        ? activeA.map(c => {
+            const done = (c.items || []).filter(it => it.done).map(it => it.label);
+            return `  · ${c.title}：${done.join("、")}`;
+          }).join("\n")
+        : "  · 暂无已勾选章节";
+
+      const defaultMaxRounds = state.userB.targetRounds || 3;
+      const activeB = state.userB.chapters.filter(c => (c.round || 0) > 0);
+      const linesB = activeB.length
+        ? activeB.map(c => {
+            const chTarget = getChapterTargetB(c, defaultMaxRounds);
+            return `  · ${c.title}：${c.round}/${chTarget} 刷`;
+          }).join("\n")
+        : "  · 暂无已刷章节";
+
+      const report = `📅 【${todayLabel} 联合复习战报】
+🎯 距初试还有 ${days} 天 | 房间：${currentRoom}
+
+📘 ${state.userA.name}（累计补做 ${catchupA.doneCatchupCount} 项）
+${formatDailySummary(state.userA)}${formatWeekSummary(state.userA)}
+[专业课进度 ${pctA}]
+${linesA}${formatPublicCourses(state.userA)}
+${state.userA.note ? `💬 复盘：${state.userA.note}\n` : ""}
+📙 ${state.userB.name}（累计补做 ${catchupB.doneCatchupCount} 项）
+${formatDailySummary(state.userB)}${formatWeekSummary(state.userB)}
+[专业课进度 ${pctB}]
+${linesB}${formatPublicCourses(state.userB)}
+${state.userB.note ? `💬 复盘：${state.userB.note}\n` : ""}`;
+
+      document.getElementById("reportText").value = report;
+      document.getElementById("reportModal").classList.remove("hidden");
+      document.getElementById("reportModal").classList.add("flex");
+    };
+    window.closeReportModal = () => {
+      document.getElementById("reportModal").classList.add("hidden");
+      document.getElementById("reportModal").classList.remove("flex");
+    };
+    window.copyReport = () => {
+      const text = document.getElementById("reportText").value;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("已复制战报");
+        closeReportModal();
+      });
+    };
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.remove("opacity-0");
+      setTimeout(() => el.classList.add("opacity-0"), 2200);
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
+    }
+
+    applySectionTabUI();
+    connectRoom(currentRoom);
+  </script>
+</body>
+</html>
