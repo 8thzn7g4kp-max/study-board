@@ -669,7 +669,6 @@
         series: "丹丹六套卷",
         title: `丹丹六套卷 · 第${i + 1}套`,
         score: "",
-        date: "",
         note: ""
       })),
       ...Array.from({ length: 6 }, (_, i) => ({
@@ -677,7 +676,6 @@
         series: "凯程六套卷",
         title: `凯程六套卷 · 第${i + 1}套`,
         score: "",
-        date: "",
         note: ""
       })),
       ...Array.from({ length: 5 }, (_, i) => ({
@@ -685,7 +683,6 @@
         series: "冬青五套卷",
         title: `冬青五套卷 · 第${i + 1}套`,
         score: "",
-        date: "",
         note: ""
       }))
     ];
@@ -859,11 +856,9 @@
         series: m.series || inferSeriesB(String(m.title || "")),
         title: String(m.title || "模拟卷"),
         score: String(m.score ?? ""),
-        date: String(m.date || ""),
         note: String(m.note || "")
       }));
 
-      // 确保丹丹六套卷、凯程六套卷、冬青五套卷预设始终存在
       const existingIds = new Set(cleaned.map(x => x.id));
       const existingTitles = new Set(cleaned.map(x => x.title));
       const result = [...cleaned];
@@ -1704,7 +1699,7 @@
       pushState();
     };
 
-    // ==================== 第2页右栏底部：userB 教育学套卷记分（内置丹丹/凯程/冬青 + 可改日期 + 无科目下拉） ====================
+    // ==================== 第2页右栏底部：userB 教育学套卷记分（丹丹/凯程/冬青，纯卷名+分数框） ====================
     function renderMockExamAccordionB() {
       const isOpen = !!openGroupsB.mock;
       const list = Array.isArray(state.userB.mockExams) ? state.userB.mockExams : [];
@@ -1763,47 +1758,40 @@
           const shortName = item.title.replace(`${sc.name} · `, "");
 
           return `
-            <div class="p-2 rounded-xl border border-l-[3px] ${sc.accent} transition ${
+            <div class="px-2.5 py-2 rounded-xl border border-l-[3px] ${sc.accent} transition flex items-center justify-between gap-2 ${
               hasScore
                 ? "bg-emerald-50/35 border-emerald-200/90"
                 : "bg-slate-50/70 border-slate-200/80 hover:border-amber-300"
             }">
-              <div class="flex items-center justify-between gap-1.5 flex-wrap">
-                <div class="flex items-center gap-1.5 min-w-0">
-                  <span class="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                    hasScore
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-200 text-slate-500"
-                  }">
-                    ${hasScore ? "✓" : "•"}
-                  </span>
-                  <span class="text-xs font-bold ${hasScore ? "text-slate-800" : "text-slate-600"} truncate">
-                    ${escapeHtml(shortName)}
-                  </span>
-                </div>
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                  hasScore
+                    ? "bg-emerald-600 text-white"
+                    : "bg-slate-200 text-slate-500"
+                }">
+                  ${hasScore ? "✓" : "•"}
+                </span>
+                <span class="text-xs font-bold ${hasScore ? "text-slate-800" : "text-slate-600"} truncate">
+                  ${escapeHtml(shortName)}
+                </span>
+              </div>
 
-                <div class="flex items-center gap-1.5 shrink-0 ml-auto">
-                  <input type="date"
-                    value="${escapeHtml(item.date || "")}"
-                    onchange="updateMockDateB(${idx}, this.value)"
-                    title="做题日期（可补选前几天）"
-                    class="text-[11px] font-mono bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-slate-600 focus:outline-none focus:border-orange-500" />
-                  <input type="text"
-                    value="${escapeHtml(item.score || "")}"
-                    onchange="updateMockScoreB(${idx}, this.value)"
-                    onkeydown="if(event.key==='Enter') this.blur()"
-                    placeholder="填分数"
-                    title="输入分数后回车或点击空白保存"
-                    class="w-20 text-xs font-mono font-extrabold text-center rounded-md px-1.5 py-0.5 border transition focus:outline-none ${
-                      hasScore
-                        ? "bg-amber-100 text-amber-900 border-amber-300 focus:bg-white focus:border-orange-500"
-                        : "bg-white text-slate-700 border-slate-200 placeholder:text-slate-400 focus:border-orange-500"
-                    }" />
-                  ${isCustom ? `
-                    <button type="button" onclick="deleteMockExamB(${idx})"
-                      class="text-slate-300 hover:text-rose-500 text-sm px-0.5 transition">&times;</button>
-                  ` : ""}
-                </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <input type="text"
+                  value="${escapeHtml(item.score || "")}"
+                  onchange="updateMockScoreB(${idx}, this.value)"
+                  onkeydown="if(event.key==='Enter') this.blur()"
+                  placeholder="填分数"
+                  title="输入分数后回车或点击空白保存"
+                  class="w-24 text-xs font-mono font-extrabold text-center rounded-md px-2 py-1 border transition focus:outline-none ${
+                    hasScore
+                      ? "bg-amber-100 text-amber-900 border-amber-300 focus:bg-white focus:border-orange-500"
+                      : "bg-white text-slate-700 border-slate-200 placeholder:text-slate-400 focus:border-orange-500"
+                  }" />
+                ${isCustom ? `
+                  <button type="button" onclick="deleteMockExamB(${idx})"
+                    class="text-slate-300 hover:text-rose-500 text-sm px-0.5 transition">&times;</button>
+                ` : ""}
               </div>
             </div>
           `;
@@ -1834,15 +1822,12 @@
 
           ${!isOpen ? "" : `
             <div class="p-2.5 space-y-3 bg-white border-t border-slate-100">
-              <!-- 快捷追加其他卷子（无科目下拉，可直接选日期） -->
-              <div class="p-2 rounded-xl bg-slate-50/80 border border-slate-200/80 flex flex-wrap sm:flex-nowrap gap-1.5 items-center">
+              <!-- 快捷追加其他卷子 -->
+              <div class="p-2 rounded-xl bg-slate-50/80 border border-slate-200/80 flex gap-1.5 items-center">
                 <input id="mockTitleB" type="text"
                   onkeydown="if(event.key==='Enter') addMockExamB()"
                   placeholder="追加其他卷子（如：311真题2024）..."
-                  class="flex-1 min-w-[130px] text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-orange-500" />
-                <input id="mockDateB" type="date" value="${getTodayStr()}"
-                  title="做题日期"
-                  class="text-xs font-mono bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700 focus:outline-none focus:border-orange-500 shrink-0" />
+                  class="flex-1 min-w-0 text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-orange-500" />
                 <input id="mockScoreB" type="text"
                   onkeydown="if(event.key==='Enter') addMockExamB()"
                   placeholder="分数"
@@ -1868,9 +1853,6 @@
       if (!item) return;
       const trimmed = rawScore.trim();
       item.score = trimmed;
-      if (trimmed && !item.date) {
-        item.date = getTodayStr();
-      }
       renderUserB();
       pushState();
       if (trimmed) {
@@ -1878,20 +1860,8 @@
       }
     };
 
-    window.updateMockDateB = (idx, newDate) => {
-      const item = state.userB.mockExams?.[idx];
-      if (!item) return;
-      item.date = newDate;
-      renderUserB();
-      pushState();
-      if (newDate) {
-        showToast(`${item.title} 日期已设为 ${formatMonthDayCN(newDate)}`);
-      }
-    };
-
     window.addMockExamB = () => {
       const titleEl = document.getElementById("mockTitleB");
-      const dateEl = document.getElementById("mockDateB");
       const scoreEl = document.getElementById("mockScoreB");
 
       const title = titleEl ? titleEl.value.trim() : "";
@@ -1907,7 +1877,6 @@
         series: inferSeriesB(title),
         title,
         score,
-        date: (dateEl && dateEl.value) ? dateEl.value : getTodayStr(),
         note: ""
       });
 
@@ -3806,9 +3775,9 @@
       };
 
       const formatMockSummaryB = (user) => {
-        const todayMocks = (user.mockExams || []).filter(m => m.date === todayStr && String(m.score || "").trim() !== "");
-        if (!todayMocks.length) return "";
-        return "\n[今日教育学模拟卷记分]\n" + todayMocks.map(m =>
+        const scoredMocks = (user.mockExams || []).filter(m => String(m.score || "").trim() !== "");
+        if (!scoredMocks.length) return "";
+        return "\n[教育学模拟卷记分]\n" + scoredMocks.map(m =>
           `  📝 ${m.title}：${m.score}`
         ).join("\n") + "\n";
       };
