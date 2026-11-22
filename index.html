@@ -495,7 +495,7 @@
       </div>
     </div>
 
-    <!-- ==================== 分区视图三：公共课（英语自由记录 & 政治十页纸+刷题分数） ==================== -->
+    <!-- ==================== 分区视图三：公共课（英语自由记录 & 政治十页纸+内置10大预测卷） ==================== -->
     <div id="sectionView_public" class="hidden">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
@@ -507,7 +507,7 @@
               <span id="userAName_public" class="font-bold text-slate-800 text-base">懒羊羊</span>
               <span class="text-xs font-semibold text-teal-700 bg-teal-100/80 px-2 py-0.5 rounded-md">公共课进度</span>
             </div>
-            <span id="publicSummaryBadgeA" class="text-xs font-mono font-bold text-slate-500">英语 0 · 政治十页纸 0/10</span>
+            <span id="publicSummaryBadgeA" class="text-xs font-mono font-bold text-slate-500">英语 0 · 十页纸 0/10 · 卷子 0/55</span>
           </div>
           <div id="publicContainerA" class="p-3 sm:p-4 space-y-3.5 flex-1 overflow-y-auto custom-scrollbar max-h-[75vh]"></div>
         </section>
@@ -520,7 +520,7 @@
               <span id="userBName_public" class="font-bold text-slate-800 text-base">Daphne.</span>
               <span class="text-xs font-semibold text-teal-700 bg-teal-100/80 px-2 py-0.5 rounded-md">公共课进度</span>
             </div>
-            <span id="publicSummaryBadgeB" class="text-xs font-mono font-bold text-slate-500">英语 0 · 政治十页纸 0/10</span>
+            <span id="publicSummaryBadgeB" class="text-xs font-mono font-bold text-slate-500">英语 0 · 十页纸 0/10 · 卷子 0/55</span>
           </div>
           <div id="publicContainerB" class="p-3 sm:p-4 space-y-3.5 flex-1 overflow-y-auto custom-scrollbar max-h-[75vh]"></div>
         </section>
@@ -668,6 +668,7 @@
         id: `preset_dandan_${i + 1}`,
         series: "丹丹六套卷",
         title: `丹丹六套卷 · 第${i + 1}套`,
+        done: false,
         score: "",
         note: ""
       })),
@@ -675,6 +676,7 @@
         id: `preset_kaicheng_${i + 1}`,
         series: "凯程六套卷",
         title: `凯程六套卷 · 第${i + 1}套`,
+        done: false,
         score: "",
         note: ""
       })),
@@ -682,10 +684,35 @@
         id: `preset_dongqing_${i + 1}`,
         series: "冬青五套卷",
         title: `冬青五套卷 · 第${i + 1}套`,
+        done: false,
         score: "",
         note: ""
       }))
     ];
+
+    // 政治内置的10套预测卷（严格对应截图打红勾项目）
+    const POLITICS_SERIES_DEFS = [
+      { key: "xiao8", name: "27肖8", count: 8 },
+      { key: "tuijie8", name: "27腿姐8套卷", count: 8 },
+      { key: "xutao10", name: "27徐涛10套卷", count: 10 },
+      { key: "suyi6", name: "27苏一6套卷", count: 6 },
+      { key: "mipeng6", name: "27米鹏6套卷", count: 6 },
+      { key: "tuijie4", name: "27腿姐4套卷", count: 4 },
+      { key: "zhangxiuqi3", name: "27张修齐3套卷", count: 3 },
+      { key: "suyi3", name: "27苏一3套卷", count: 3 },
+      { key: "xiao4", name: "27肖4", count: 4 },
+      { key: "xutao3", name: "27徐涛3套卷", count: 3 }
+    ];
+
+    const PRESET_POLITICS_PAPERS = POLITICS_SERIES_DEFS.flatMap(s =>
+      Array.from({ length: s.count }, (_, i) => ({
+        id: `preset_pol_${s.key}_${i + 1}`,
+        series: s.name,
+        title: `${s.name} · 第${i + 1}套`,
+        done: false,
+        grade: ""
+      }))
+    );
 
     const DAY_LABELS = {
       1: "周一", 2: "周二", 3: "周三", 4: "周四", 5: "周五", 6: "周六", 7: "周日", 0: "未设日期"
@@ -820,14 +847,37 @@
       };
     }
 
+    function inferPoliticsSeries(title) {
+      for (const s of POLITICS_SERIES_DEFS) {
+        if (title.startsWith(s.name)) return s.name;
+      }
+      return "其他补充卷";
+    }
+
     function normalizePoliticsPapers(raw) {
       const arr = Array.isArray(raw) ? raw : Object.values(raw || {});
-      return arr.filter(Boolean).map(p => ({
-        id: p.id || ("pp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6)),
-        date: p.date || getTodayStr(),
-        title: String(p.title || "政治模拟卷"),
-        grade: String(p.grade || "")
-      }));
+      const cleaned = arr.filter(Boolean).map(p => {
+        const gradeStr = String(p.grade || "");
+        const hasDoneProp = typeof p.done === "boolean";
+        const isDone = hasDoneProp ? p.done : (gradeStr.trim() !== "");
+        return {
+          id: p.id || ("pp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6)),
+          series: p.series || inferPoliticsSeries(String(p.title || "")),
+          title: String(p.title || "政治模拟卷"),
+          done: isDone,
+          grade: gradeStr === "已完成" ? "" : gradeStr
+        };
+      });
+
+      const existingIds = new Set(cleaned.map(x => x.id));
+      const existingTitles = new Set(cleaned.map(x => x.title));
+      const result = [...cleaned];
+      PRESET_POLITICS_PAPERS.forEach(preset => {
+        if (!existingIds.has(preset.id) && !existingTitles.has(preset.title)) {
+          result.push({ ...preset });
+        }
+      });
+      return result;
     }
 
     function normalizeMockExamsA(raw) {
@@ -851,13 +901,18 @@
 
     function normalizeMockExamsB(raw) {
       const arr = Array.isArray(raw) ? raw : Object.values(raw || {});
-      const cleaned = arr.filter(Boolean).map(m => ({
-        id: m.id || ("mkb_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6)),
-        series: m.series || inferSeriesB(String(m.title || "")),
-        title: String(m.title || "模拟卷"),
-        score: String(m.score ?? ""),
-        note: String(m.note || "")
-      }));
+      const cleaned = arr.filter(Boolean).map(m => {
+        const scoreStr = String(m.score ?? "");
+        const hasDoneProp = typeof m.done === "boolean";
+        return {
+          id: m.id || ("mkb_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6)),
+          series: m.series || inferSeriesB(String(m.title || "")),
+          title: String(m.title || "模拟卷"),
+          done: hasDoneProp ? m.done : (scoreStr.trim() !== ""),
+          score: scoreStr,
+          note: String(m.note || "")
+        };
+      });
 
       const existingIds = new Set(cleaned.map(x => x.id));
       const existingTitles = new Set(cleaned.map(x => x.title));
@@ -921,7 +976,7 @@
           total: 10,
           done: Array(10).fill(false)
         },
-        politicsPapers: [],
+        politicsPapers: JSON.parse(JSON.stringify(PRESET_POLITICS_PAPERS)),
         mockExams: [],
         note: "",
         likes: 0
@@ -948,7 +1003,7 @@
           total: 10,
           done: Array(10).fill(false)
         },
-        politicsPapers: [],
+        politicsPapers: JSON.parse(JSON.stringify(PRESET_POLITICS_PAPERS)),
         mockExams: JSON.parse(JSON.stringify(PRESET_USERB_SETS)),
         note: "",
         likes: 0
@@ -977,7 +1032,6 @@
     let editingWeekTask = null;
     let editingDailyHabit = null;
     let editingFreeLog = null;
-    let editingPolPaper = null;
     let editingMockExamA = null;
 
     let collapsedDateGroups = {};
@@ -999,6 +1053,12 @@
 
     let openGroupsA = { gaodai: true, shufen: false, other: false, mock: true };
     let openGroupsB = { ziran: true, renwen: false, gis: false, yaogan: false, other: false, mock: true };
+
+    // 政治预测卷折叠面板展开状态（默认展开肖8和腿姐8套卷，其余可点击展开）
+    let openPolSeries = {
+      A: { "27肖8": true, "27腿姐8套卷": true },
+      B: { "27肖8": true, "27腿姐8套卷": true }
+    };
 
     // ==================== OneNote 顶部分区标签切换 ====================
     window.switchSectionTab = (tabKey) => {
@@ -1474,7 +1534,7 @@
       };
 
       const rowsHtml = list.length === 0
-        ? `<div class="text-center py-4 text-xs text-slate-400">暂无模考记录，上方输入卷名与分数即可添加</div>`
+        ? `<div class="text-center py-4 text-xs text-slate-400">暂无模考记录，上方输入卷名即可添加</div>`
         : list.map((item, idx) => {
             const isEditing = editingMockExamA === idx;
             if (isEditing) {
@@ -1487,7 +1547,7 @@
                       class="flex-1 min-w-[120px] text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500" />
                     <input id="editMockScoreA_${idx}" type="text" value="${escapeHtml(item.score)}"
                       onkeydown="handleMockEditKeyA(event, ${idx})"
-                      placeholder="分数"
+                      placeholder="分数(选填)"
                       class="w-24 text-xs font-mono font-bold text-indigo-700 bg-indigo-50/50 border border-indigo-200 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500" />
                     <input id="editMockDateA_${idx}" type="date" value="${escapeHtml(item.date || getTodayStr())}"
                       class="text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500" />
@@ -1532,7 +1592,7 @@
                   <div class="flex items-center gap-1.5 shrink-0">
                     <span ondblclick="startEditMockExamA(${idx})"
                       class="px-2 py-0.5 rounded-md text-xs font-mono font-extrabold bg-amber-100/90 text-amber-900 border border-amber-300 cursor-pointer">
-                      ${escapeHtml(item.score || "未记分")}
+                      ${escapeHtml(item.score || "已完成")}
                     </span>
                     <button type="button" onclick="startEditMockExamA(${idx})"
                       class="text-slate-400 hover:text-indigo-600 text-xs px-1 py-0.5 rounded hover:bg-slate-200/60 transition">✎</button>
@@ -1571,7 +1631,7 @@
                     class="flex-1 min-w-[120px] text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500" />
                   <input id="mockScoreA" type="text"
                     onkeydown="if(event.key==='Enter') addMockExamA()"
-                    placeholder="分数(如 128)"
+                    placeholder="分数(选填)"
                     class="w-24 sm:w-28 text-xs font-mono font-bold bg-amber-50/60 border border-amber-300 rounded-lg px-2 py-1.5 text-amber-900 placeholder:text-amber-600/60 focus:bg-white focus:outline-none focus:border-amber-500 shrink-0" />
                 </div>
                 <div class="flex flex-wrap sm:flex-nowrap gap-1.5">
@@ -1584,7 +1644,7 @@
                     class="flex-1 min-w-0 text-[11px] bg-white border border-slate-200 rounded-lg px-2.5 py-1 focus:outline-none focus:border-indigo-500" />
                   <button onclick="addMockExamA()" type="button"
                     class="px-3 py-1 rounded-lg text-xs font-semibold shrink-0 transition bg-indigo-600 hover:bg-indigo-700 text-white">
-                    + 记分
+                    + 记录
                   </button>
                 </div>
               </div>
@@ -1608,7 +1668,7 @@
       const title = titleEl ? titleEl.value.trim() : "";
       const score = scoreEl ? scoreEl.value.trim() : "";
       if (!title && !score) {
-        showToast("请输入试卷名称或分数");
+        showToast("请输入试卷名称");
         return;
       }
 
@@ -1618,7 +1678,7 @@
         date: (dateEl && dateEl.value) ? dateEl.value : getTodayStr(),
         subject: subjEl ? subjEl.value : "综合",
         title: title || "模拟测试",
-        score: score || "未记分",
+        score: score,
         note: noteEl ? noteEl.value.trim() : ""
       });
 
@@ -1628,7 +1688,7 @@
       editingMockExamA = null;
       renderUserA();
       pushState();
-      showToast(`已记录分数：${score || "完成"}`);
+      showToast("已记录模考");
     };
 
     window.updateMockDateA = (idx, newDate) => {
@@ -1666,14 +1726,14 @@
         const newDate = dateInp ? dateInp.value : "";
         const newNote = noteInp ? noteInp.value.trim() : "";
         if (newTitle) item.title = newTitle;
-        item.score = newScore || "未记分";
+        item.score = newScore;
         if (newDate) item.date = newDate;
         item.note = newNote;
       }
       editingMockExamA = null;
       renderUserA();
       pushState();
-      showToast("已更新记分");
+      showToast("已更新");
     };
 
     window.cancelMockExamEditA = () => {
@@ -1699,13 +1759,13 @@
       pushState();
     };
 
-    // ==================== 第2页右栏底部：userB 教育学套卷记分（丹丹/凯程/冬青，纯卷名+分数框） ====================
+    // ==================== 第2页右栏底部：userB 教育学套卷（先勾卷名打卡，分数选填） ====================
     function renderMockExamAccordionB() {
       const isOpen = !!openGroupsB.mock;
       const list = Array.isArray(state.userB.mockExams) ? state.userB.mockExams : [];
 
-      const scoredItems = list.filter(m => String(m.score || "").trim() !== "");
-      const numericScores = scoredItems
+      const doneItems = list.filter(m => !!m.done);
+      const numericScores = list
         .map(m => {
           const match = String(m.score || "").match(/^\d+(\.\d+)?/);
           return match ? parseFloat(match[0]) : NaN;
@@ -1718,8 +1778,8 @@
         : null;
 
       const statsStr = numericScores.length > 0
-        ? `已刷 ${scoredItems.length}/${list.length} · 均分 ${avgScore} · 最高 ${maxScore}`
-        : `已刷 ${scoredItems.length}/${list.length} 套`;
+        ? `已刷 ${doneItems.length}/${list.length} · 均分 ${avgScore} · 最高 ${maxScore}`
+        : `已刷 ${doneItems.length}/${list.length} 套`;
 
       const seriesConfigs = [
         {
@@ -1750,39 +1810,41 @@
           .filter(({ item }) => (item.series || inferSeriesB(item.title)) === sc.name);
 
         if (items.length === 0) return "";
-        const doneCnt = items.filter(({ item }) => String(item.score || "").trim() !== "").length;
+        const doneCnt = items.filter(({ item }) => !!item.done).length;
 
         const cardsHtml = items.map(({ item, idx }) => {
+          const isDone = !!item.done;
           const hasScore = String(item.score || "").trim() !== "";
           const isCustom = !String(item.id || "").startsWith("preset_");
           const shortName = item.title.replace(`${sc.name} · `, "");
 
           return `
             <div class="px-2.5 py-2 rounded-xl border border-l-[3px] ${sc.accent} transition flex items-center justify-between gap-2 ${
-              hasScore
-                ? "bg-emerald-50/35 border-emerald-200/90"
+              isDone
+                ? "bg-emerald-50/45 border-emerald-200/90"
                 : "bg-slate-50/70 border-slate-200/80 hover:border-amber-300"
             }">
-              <div class="flex items-center gap-2 min-w-0">
-                <span class="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                  hasScore
-                    ? "bg-emerald-600 text-white"
-                    : "bg-slate-200 text-slate-500"
+              <button type="button" onclick="toggleMockDoneB(${idx})"
+                class="flex items-center gap-2 min-w-0 flex-1 text-left select-none">
+                <span class="w-4 h-4 rounded flex items-center justify-center text-[11px] font-bold border shrink-0 transition ${
+                  isDone
+                    ? "bg-emerald-600 border-emerald-600 text-white"
+                    : "bg-white border-slate-300 hover:border-emerald-500 text-transparent"
                 }">
-                  ${hasScore ? "✓" : "•"}
+                  ✓
                 </span>
-                <span class="text-xs font-bold ${hasScore ? "text-slate-800" : "text-slate-600"} truncate">
+                <span class="text-xs font-bold truncate ${isDone ? "text-emerald-900" : "text-slate-700"}">
                   ${escapeHtml(shortName)}
                 </span>
-              </div>
+              </button>
 
               <div class="flex items-center gap-1.5 shrink-0">
                 <input type="text"
                   value="${escapeHtml(item.score || "")}"
                   onchange="updateMockScoreB(${idx}, this.value)"
                   onkeydown="if(event.key==='Enter') this.blur()"
-                  placeholder="填分数"
-                  title="输入分数后回车或点击空白保存"
+                  placeholder="填分数(选填)"
+                  title="可先勾选左侧卷名，分数随时选填"
                   class="w-24 text-xs font-mono font-extrabold text-center rounded-md px-2 py-1 border transition focus:outline-none ${
                     hasScore
                       ? "bg-amber-100 text-amber-900 border-amber-300 focus:bg-white focus:border-orange-500"
@@ -1801,7 +1863,7 @@
           <div class="space-y-1.5">
             <div class="flex items-center justify-between px-1">
               <span class="px-2 py-0.5 rounded-md text-[11px] font-bold border ${sc.badge}">${sc.name}</span>
-              <span class="text-[11px] font-mono font-semibold text-slate-400">${doneCnt}/${items.length} 套已记分</span>
+              <span class="text-[11px] font-mono font-semibold text-slate-400">已完成 ${doneCnt}/${items.length} 套</span>
             </div>
             <div class="space-y-1.5">
               ${cardsHtml}
@@ -1815,14 +1877,13 @@
           <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b transition bg-amber-50/90 hover:bg-amber-100/70 border-amber-200">
             <button onclick="toggleSubjectGroupB('mock')" type="button" class="flex items-center gap-2 flex-1 min-w-0 text-left">
               <span class="text-xs text-slate-700 font-mono w-3.5 shrink-0">${isOpen ? "▼" : "▶"}</span>
-              <span class="text-sm font-bold text-slate-800 truncate">📝 教育学模拟卷记分</span>
+              <span class="text-sm font-bold text-slate-800 truncate">📝 教育学模拟卷打卡 & 记分</span>
               <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 bg-amber-100 text-amber-800">${statsStr}</span>
             </button>
           </div>
 
           ${!isOpen ? "" : `
             <div class="p-2.5 space-y-3 bg-white border-t border-slate-100">
-              <!-- 快捷追加其他卷子 -->
               <div class="p-2 rounded-xl bg-slate-50/80 border border-slate-200/80 flex gap-1.5 items-center">
                 <input id="mockTitleB" type="text"
                   onkeydown="if(event.key==='Enter') addMockExamB()"
@@ -1830,15 +1891,14 @@
                   class="flex-1 min-w-0 text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-orange-500" />
                 <input id="mockScoreB" type="text"
                   onkeydown="if(event.key==='Enter') addMockExamB()"
-                  placeholder="分数"
-                  class="w-20 text-xs font-mono font-bold bg-amber-50/70 border border-amber-300 rounded-lg px-2 py-1.5 text-amber-900 placeholder:text-amber-600/60 focus:bg-white focus:outline-none focus:border-orange-500 shrink-0" />
+                  placeholder="分数(选填)"
+                  class="w-24 text-xs font-mono font-bold bg-amber-50/70 border border-amber-300 rounded-lg px-2 py-1.5 text-amber-900 placeholder:text-amber-600/60 focus:bg-white focus:outline-none focus:border-orange-500 shrink-0" />
                 <button onclick="addMockExamB()" type="button"
                   class="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition bg-orange-500 hover:bg-orange-600 text-white">
                   + 添加
                 </button>
               </div>
 
-              <!-- 丹丹六套卷 / 凯程六套卷 / 冬青五套卷 列表 -->
               <div class="space-y-3">
                 ${seriesBlocksHtml}
               </div>
@@ -1848,11 +1908,23 @@
       `;
     }
 
+    window.toggleMockDoneB = (idx) => {
+      const item = state.userB.mockExams?.[idx];
+      if (!item) return;
+      item.done = !item.done;
+      renderUserB();
+      pushState();
+      showToast(item.done ? `已打卡：${item.title}` : `已取消打卡：${item.title}`);
+    };
+
     window.updateMockScoreB = (idx, rawScore) => {
       const item = state.userB.mockExams?.[idx];
       if (!item) return;
       const trimmed = rawScore.trim();
       item.score = trimmed;
+      if (trimmed) {
+        item.done = true;
+      }
       renderUserB();
       pushState();
       if (trimmed) {
@@ -1876,6 +1948,7 @@
         id: "mkb_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
         series: inferSeriesB(title),
         title,
+        done: true,
         score,
         note: ""
       });
@@ -1894,7 +1967,13 @@
       pushState();
     };
 
-    // ==================== 第3页：公共课（英语自由记录 + 政治十页纸背诵 + 政治刷题分数框） ====================
+    // ==================== 第3页：公共课（英语自由记录 + 政治十页纸背诵 + 内置10大政治预测卷） ====================
+    window.togglePolSeriesCollapse = (side, seriesName) => {
+      if (!openPolSeries[side]) openPolSeries[side] = {};
+      openPolSeries[side][seriesName] = !openPolSeries[side][seriesName];
+      renderPublicCoursesPage();
+    };
+
     function renderPublicCoursesPage() {
       renderPublicCourseSide("A");
       renderPublicCourseSide("B");
@@ -1910,10 +1989,11 @@
       const donePagesCount = tp.done.filter(Boolean).length;
       const tpPct = tp.total === 0 ? 0 : Math.round((donePagesCount / tp.total) * 100);
       const papers = Array.isArray(user.politicsPapers) ? user.politicsPapers : [];
+      const donePapersCount = papers.filter(p => !!p.done).length;
 
       const summaryBadge = document.getElementById(`publicSummaryBadge${side}`);
       if (summaryBadge) {
-        summaryBadge.textContent = `英语 ${engLogs.length}条 · 十页纸 ${donePagesCount}/${tp.total} · 卷子 ${papers.length}份`;
+        summaryBadge.textContent = `英语 ${engLogs.length}条 · 十页纸 ${donePagesCount}/${tp.total} · 卷子 ${donePapersCount}/${papers.length}`;
       }
 
       // 1. 英语自由记录卡片
@@ -1979,14 +2059,14 @@
                 + 记录
               </button>
             </div>
-            <div class="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-0.5">
+            <div class="space-y-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-0.5">
               ${engListHtml}
             </div>
           </div>
         </div>
       `;
 
-      // 2. 政治：十页纸背诵记录（待定模板） + 刷题卷子分数等级框
+      // 2. 政治：十页纸背诵记录 + 内置 10 大政治套卷（无日期，先勾卷名打卡，分数选填）
       const pageButtonsHtml = Array.from({ length: tp.total }, (_, pIdx) => {
         const checked = !!tp.done[pIdx];
         return `
@@ -2002,70 +2082,108 @@
         `;
       }).join("");
 
-      const papersHtml = papers.length === 0
-        ? `<div class="text-center py-3 text-xs text-slate-400">暂无政治刷题记录，上方输入卷子与分数/等级即可添加</div>`
-        : papers.map((paper, idx) => {
-            const isEditing = editingPolPaper && editingPolPaper.side === side && editingPolPaper.idx === idx;
-            if (isEditing) {
+      const allSeriesNames = [
+        ...POLITICS_SERIES_DEFS.map(s => s.name),
+        "其他补充卷"
+      ];
+
+      const seriesAccordionsHtml = allSeriesNames.map(seriesName => {
+        const items = papers
+          .map((paper, idx) => ({ paper, idx }))
+          .filter(({ paper }) => (paper.series || inferPoliticsSeries(paper.title)) === seriesName);
+
+        if (items.length === 0) return "";
+
+        const doneCnt = items.filter(({ paper }) => !!paper.done).length;
+        const isAllDone = doneCnt === items.length && items.length > 0;
+        const isOpen = !!(openPolSeries[side] && openPolSeries[side][seriesName]);
+
+        const rowsHtml = !isOpen ? "" : `
+          <div class="p-2 bg-white border-t border-slate-100 space-y-1.5">
+            ${items.map(({ paper, idx }) => {
+              const isDone = !!paper.done;
+              const hasGrade = String(paper.grade || "").trim() !== "";
+              const isCustom = !String(paper.id || "").startsWith("preset_pol_");
+              const shortTitle = paper.title.replace(`${seriesName} · `, "");
+
               return `
-                <div class="flex flex-wrap items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-500 ring-2 ring-rose-100 bg-white">
-                  <input id="editPolPaperTitle_${side}_${idx}" type="text" value="${escapeHtml(paper.title)}"
-                    onkeydown="handlePolPaperEditKey(event, '${side}', ${idx})"
-                    placeholder="卷子名称"
-                    class="flex-1 min-w-[110px] text-xs font-medium text-slate-800 bg-transparent focus:outline-none" />
-                  <input id="editPolPaperGrade_${side}_${idx}" type="text" value="${escapeHtml(paper.grade)}"
-                    onkeydown="handlePolPaperEditKey(event, '${side}', ${idx})"
-                    placeholder="分数/等级"
-                    class="w-24 text-xs font-mono font-bold text-amber-800 bg-amber-50 border border-amber-300 rounded px-1.5 py-0.5 focus:outline-none" />
-                  <div class="flex items-center gap-1 shrink-0">
-                    <button type="button" onclick="savePolPaperEdit('${side}', ${idx})"
-                      class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition">
-                      保存
-                    </button>
-                    <button type="button" onclick="cancelPolPaperEdit()"
-                      class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium transition">
-                      取消
-                    </button>
+                <div class="px-2.5 py-1.5 rounded-lg border transition flex items-center justify-between gap-2 ${
+                  isDone
+                    ? "bg-emerald-50/45 border-emerald-200/90"
+                    : "bg-slate-50/70 border-slate-200/80 hover:border-rose-200"
+                }">
+                  <button type="button" onclick="togglePolPaperDone('${side}', ${idx})"
+                    class="flex items-center gap-2 min-w-0 flex-1 text-left select-none">
+                    <span class="w-4 h-4 rounded flex items-center justify-center text-[11px] font-bold border shrink-0 transition ${
+                      isDone
+                        ? "bg-emerald-600 border-emerald-600 text-white"
+                        : "bg-white border-slate-300 hover:border-rose-400 text-transparent"
+                    }">
+                      ✓
+                    </span>
+                    <span class="text-xs font-bold truncate ${isDone ? "text-emerald-900" : "text-slate-700"}">
+                      ${escapeHtml(shortTitle)}
+                    </span>
+                  </button>
+
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <input type="text"
+                      value="${escapeHtml(paper.grade || "")}"
+                      onchange="updatePolPaperGrade('${side}', ${idx}, this.value)"
+                      onkeydown="if(event.key==='Enter') this.blur()"
+                      placeholder="分数/等级(选填)"
+                      title="可先勾选左侧卷名，分数随时选填"
+                      class="w-28 text-xs font-mono font-extrabold text-center rounded-md px-2 py-0.5 border transition focus:outline-none ${
+                        hasGrade
+                          ? "bg-amber-100 text-amber-900 border-amber-300 focus:bg-white focus:border-rose-500"
+                          : "bg-white text-slate-700 border-slate-200 placeholder:text-slate-400 focus:border-rose-500"
+                      }" />
+                    ${isCustom ? `
+                      <button type="button" onclick="deletePolPaper('${side}', ${idx})"
+                        class="text-slate-300 hover:text-rose-500 text-sm px-0.5 transition">&times;</button>
+                    ` : ""}
                   </div>
                 </div>
               `;
-            }
+            }).join("")}
+          </div>
+        `;
 
-            return `
-              <div class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:border-rose-200 transition">
-                <div class="flex items-center gap-2 flex-1 min-w-0">
-                  <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 bg-rose-50 text-rose-700 border-rose-200">
-                    ${formatMonthDayCN(paper.date)}
-                  </span>
-                  <span ondblclick="startEditPolPaper('${side}', ${idx})"
-                    class="text-xs font-semibold text-slate-800 truncate cursor-pointer hover:text-rose-600">
-                    ${escapeHtml(paper.title)}
-                  </span>
-                </div>
-
-                <div class="flex items-center gap-1.5 shrink-0">
-                  <span ondblclick="startEditPolPaper('${side}', ${idx})"
-                    title="分数/等级"
-                    class="px-2 py-0.5 rounded-md text-xs font-mono font-extrabold bg-amber-100 text-amber-900 border border-amber-300 cursor-pointer">
-                    ${escapeHtml(paper.grade || "待记分")}
-                  </span>
-                  <button type="button" onclick="startEditPolPaper('${side}', ${idx})"
-                    class="text-slate-400 hover:text-rose-600 text-xs px-1 py-0.5 rounded hover:bg-slate-200/60 transition">✎</button>
-                  <button type="button" onclick="deletePolPaper('${side}', ${idx})"
-                    class="text-slate-300 hover:text-rose-500 text-sm px-0.5 transition">&times;</button>
-                </div>
+        return `
+          <div class="rounded-xl border border-slate-200/90 overflow-hidden">
+            <button type="button" onclick="togglePolSeriesCollapse('${side}', '${escapeHtml(seriesName)}')"
+              class="w-full px-3 py-2 flex items-center justify-between gap-2 text-left transition ${
+                isAllDone
+                  ? "bg-emerald-50/80 hover:bg-emerald-100/70"
+                  : "bg-slate-50/90 hover:bg-rose-50/60"
+              }">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-[11px] font-mono text-slate-500 w-3 shrink-0">${isOpen ? "▼" : "▶"}</span>
+                <span class="text-xs font-bold text-slate-800 truncate">${escapeHtml(seriesName)}</span>
               </div>
-            `;
-          }).join("");
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold shrink-0 ${
+                isAllDone
+                  ? "bg-emerald-100 text-emerald-800"
+                  : doneCnt > 0
+                    ? "bg-rose-100 text-rose-800"
+                    : "bg-slate-200/80 text-slate-600"
+              }">
+                ${doneCnt}/${items.length}
+              </span>
+            </button>
+            ${rowsHtml}
+          </div>
+        `;
+      }).join("");
 
       const politicsCardHtml = `
         <div class="rounded-xl border border-rose-200/90 overflow-hidden shadow-2xs">
           <div class="px-3.5 py-2.5 bg-rose-50/90 border-b border-rose-200/80 flex items-center justify-between gap-2">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-bold text-slate-800">🚩 政治 · 十页纸背诵 & 刷题记录</span>
+              <span class="text-sm font-bold text-slate-800">🚩 政治 · 十页纸背诵 & 预测卷刷题</span>
             </div>
             <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800">
-              背诵 ${tpPct}% (${donePagesCount}/${tp.total})
+              背诵 ${tpPct}% · 刷卷 ${donePapersCount}/${papers.length}
             </span>
           </div>
 
@@ -2097,31 +2215,30 @@
               </div>
             </div>
 
-            <!-- 政治刷题卷子 + 分数等级框 -->
+            <!-- 政治预测卷刷题打卡（先勾卷名，分数选填，无日期） -->
             <div class="space-y-2 pt-1 border-t border-slate-100">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-700">📝 刷题卷子记录（含分数/等级框）</span>
-                <span class="text-[11px] font-mono text-slate-400">已刷 ${papers.length} 份</span>
+                <span class="text-xs font-bold text-slate-700">📝 预测卷打卡（点卷名直接打卡，分数选填）</span>
+                <span class="text-[11px] font-mono text-slate-400">已刷 ${donePapersCount}/${papers.length}</span>
               </div>
 
               <div class="flex flex-wrap sm:flex-nowrap gap-1.5">
                 <input id="polPaperTitle_${side}" type="text"
                   onkeydown="if(event.key==='Enter') addPolPaper('${side}')"
-                  placeholder="卷子名称（如：肖八第1套 / 腿四第2套）..."
-                  class="flex-1 min-w-[140px] text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:bg-white focus:outline-none focus:border-rose-500" />
+                  placeholder="追加其他卷子..."
+                  class="flex-1 min-w-[130px] text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:bg-white focus:outline-none focus:border-rose-500" />
                 <input id="polPaperGrade_${side}" type="text"
                   onkeydown="if(event.key==='Enter') addPolPaper('${side}')"
-                  placeholder="分数/等级"
-                  title="分数等级框（如：38分 / A / 42/50）"
-                  class="w-24 sm:w-28 text-xs font-mono font-bold bg-amber-50/70 border border-amber-300 rounded-lg px-2 py-1.5 text-amber-900 placeholder:text-amber-600/60 focus:bg-white focus:outline-none focus:border-amber-500 shrink-0" />
+                  placeholder="分数/等级(选填)"
+                  class="w-28 text-xs font-mono font-bold bg-amber-50/70 border border-amber-300 rounded-lg px-2 py-1.5 text-amber-900 placeholder:text-amber-600/60 focus:bg-white focus:outline-none focus:border-amber-500 shrink-0" />
                 <button type="button" onclick="addPolPaper('${side}')"
                   class="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 bg-rose-600 hover:bg-rose-700 text-white transition">
-                  + 记录
+                  + 添加
                 </button>
               </div>
 
-              <div class="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-0.5">
-                ${papersHtml}
+              <div class="space-y-1.5">
+                ${seriesAccordionsHtml}
               </div>
             </div>
           </div>
@@ -2163,82 +2280,66 @@
       }
     };
 
+    window.togglePolPaperDone = (side, idx) => {
+      const user = side === "A" ? state.userA : state.userB;
+      const item = user.politicsPapers?.[idx];
+      if (!item) return;
+      item.done = !item.done;
+      renderPublicCoursesPage();
+      pushState();
+      showToast(item.done ? `已打卡：${item.title}` : `已取消打卡：${item.title}`);
+    };
+
+    window.updatePolPaperGrade = (side, idx, rawGrade) => {
+      const user = side === "A" ? state.userA : state.userB;
+      const item = user.politicsPapers?.[idx];
+      if (!item) return;
+      const trimmed = rawGrade.trim();
+      item.grade = trimmed;
+      if (trimmed) {
+        item.done = true;
+      }
+      renderPublicCoursesPage();
+      pushState();
+      if (trimmed) {
+        showToast(`${item.title} 已记分：${trimmed}`);
+      }
+    };
+
     window.addPolPaper = (side) => {
       const titleInput = document.getElementById(`polPaperTitle_${side}`);
       const gradeInput = document.getElementById(`polPaperGrade_${side}`);
       const title = titleInput ? titleInput.value.trim() : "";
       const grade = gradeInput ? gradeInput.value.trim() : "";
-      if (!title && !grade) {
-        showToast("请输入卷子名称或分数等级");
+      if (!title) {
+        showToast("请输入卷子名称");
         return;
       }
 
       const user = side === "A" ? state.userA : state.userB;
       if (!Array.isArray(user.politicsPapers)) user.politicsPapers = [];
-      user.politicsPapers.unshift({
+      const series = inferPoliticsSeries(title);
+      user.politicsPapers.push({
         id: "pp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
-        date: getTodayStr(),
-        title: title || "政治套卷",
-        grade: grade || "已完成"
+        series,
+        title,
+        done: true,
+        grade
       });
+
+      if (!openPolSeries[side]) openPolSeries[side] = {};
+      openPolSeries[side][series] = true;
 
       if (titleInput) titleInput.value = "";
       if (gradeInput) gradeInput.value = "";
-      editingPolPaper = null;
       renderPublicCoursesPage();
       pushState();
-      showToast("已记录政治刷题");
-    };
-
-    window.startEditPolPaper = (side, idx) => {
-      editingPolPaper = { side, idx };
-      renderPublicCoursesPage();
-      requestAnimationFrame(() => {
-        const inp = document.getElementById(`editPolPaperGrade_${side}_${idx}`);
-        if (inp) {
-          inp.focus();
-          inp.select();
-        }
-      });
-    };
-
-    window.savePolPaperEdit = (side, idx) => {
-      if (!editingPolPaper || editingPolPaper.side !== side || editingPolPaper.idx !== idx) return;
-      const titleInp = document.getElementById(`editPolPaperTitle_${side}_${idx}`);
-      const gradeInp = document.getElementById(`editPolPaperGrade_${side}_${idx}`);
-      const user = side === "A" ? state.userA : state.userB;
-      const item = user.politicsPapers?.[idx];
-      if (item) {
-        const nt = titleInp ? titleInp.value.trim() : "";
-        const ng = gradeInp ? gradeInp.value.trim() : "";
-        if (nt) item.title = nt;
-        item.grade = ng || "已完成";
-      }
-      editingPolPaper = null;
-      renderPublicCoursesPage();
-      pushState();
-      showToast("已更新");
-    };
-
-    window.cancelPolPaperEdit = () => {
-      editingPolPaper = null;
-      renderPublicCoursesPage();
-    };
-
-    window.handlePolPaperEditKey = (e, side, idx) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        savePolPaperEdit(side, idx);
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        cancelPolPaperEdit();
-      }
+      showToast(`已添加并打卡：${title}`);
     };
 
     window.deletePolPaper = (side, idx) => {
       const user = side === "A" ? state.userA : state.userB;
       if (!Array.isArray(user.politicsPapers)) return;
-      editingPolPaper = null;
       user.politicsPapers.splice(idx, 1);
       renderPublicCoursesPage();
       pushState();
@@ -3228,7 +3329,7 @@
       container.innerHTML = chapterAccordionsHtml + mockHtml;
     }
 
-    // ==================== 右栏：地理/教育学章节 + 丹丹/凯程/冬青套卷记分 ====================
+    // ==================== 右栏：地理/教育学章节 + 丹丹/凯程/冬青套卷 ====================
     window.toggleSubjectGroupB = (groupKey) => {
       openGroupsB[groupKey] = !openGroupsB[groupKey];
       renderUserB();
@@ -3770,28 +3871,31 @@
         const todayMocks = (user.mockExams || []).filter(m => m.date === todayStr);
         if (!todayMocks.length) return "";
         return "\n[今日专业课模考记分]\n" + todayMocks.map(m =>
-          `  🎯 [${m.subject}] ${m.title}：${m.score}`
+          `  🎯 [${m.subject}] ${m.title}${m.score ? `：${m.score}` : ""}`
         ).join("\n") + "\n";
       };
 
       const formatMockSummaryB = (user) => {
-        const scoredMocks = (user.mockExams || []).filter(m => String(m.score || "").trim() !== "");
-        if (!scoredMocks.length) return "";
-        return "\n[教育学模拟卷记分]\n" + scoredMocks.map(m =>
-          `  📝 ${m.title}：${m.score}`
+        const doneMocks = (user.mockExams || []).filter(m => !!m.done);
+        if (!doneMocks.length) return "";
+        return `\n[教育学模拟卷进度 ${doneMocks.length}/${user.mockExams.length}]\n` + doneMocks.map(m =>
+          `  📝 ${m.title}${m.score ? `（${m.score}）` : ""}`
         ).join("\n") + "\n";
       };
 
       const formatPublicCourses = (user) => {
         const todayEng = (user.freeLogs?.english || []).filter(l => l.date === todayStr);
-        const todayPolPapers = (user.politicsPapers || []).filter(p => p.date === todayStr);
+        const allPapers = user.politicsPapers || [];
+        const donePapers = allPapers.filter(p => !!p.done);
         const tp = normalizeTenPages(user.politicsTenPages);
         const tpDoneCount = tp.done.filter(Boolean).length;
 
         let str = "\n[公共课进度]\n";
         todayEng.forEach(l => { str += `  📖 英语：${l.text}\n`; });
-        str += `  🚩 政治${tp.title}：${tpDoneCount}/${tp.total} 页\n`;
-        todayPolPapers.forEach(p => { str += `  📝 政治刷题：${p.title}（${p.grade}）\n`; });
+        str += `  🚩 政治${tp.title}：${tpDoneCount}/${tp.total} 页 | 预测卷 ${donePapers.length}/${allPapers.length} 套\n`;
+        donePapers.forEach(p => {
+          str += `    · ${p.title}${p.grade ? `（${p.grade}）` : ""}\n`;
+        });
         return str;
       };
 
