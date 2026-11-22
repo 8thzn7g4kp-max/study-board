@@ -97,7 +97,7 @@
       </div>
     </div>
 
-    <!-- OneNote 风格上方分区标签栏 -->
+    <!-- OneNote 风格上方 3 分区标签栏 -->
     <div class="bg-slate-200/80 border-t border-slate-200/90 pt-1.5 px-3 sm:px-4">
       <div class="max-w-7xl mx-auto flex items-end gap-1.5 overflow-x-auto">
         <button id="tabBtn_tasks" onclick="switchSectionTab('tasks')" type="button"
@@ -108,8 +108,14 @@
 
         <button id="tabBtn_progress" onclick="switchSectionTab('progress')" type="button"
           class="onenote-tab onenote-tab-inactive px-4 py-2 text-xs sm:text-sm font-bold flex items-center gap-2 border-t-[3px] border-t-blue-500 border-x border-slate-300/70 shrink-0">
-          <span>📚 学科章节 & 公共课进度</span>
+          <span>📚 专业课进度 & 模考刷题</span>
           <span id="tabBadge_progress" class="px-1.5 py-0.2 rounded-full text-[11px] font-mono bg-white/80 text-slate-600">双科</span>
+        </button>
+
+        <button id="tabBtn_public" onclick="switchSectionTab('public')" type="button"
+          class="onenote-tab onenote-tab-inactive px-4 py-2 text-xs sm:text-sm font-bold flex items-center gap-2 border-t-[3px] border-t-teal-500 border-x border-slate-300/70 shrink-0">
+          <span>📖 公共课：英语 & 政治</span>
+          <span id="tabBadge_public" class="px-1.5 py-0.2 rounded-full text-[11px] font-mono bg-teal-50 text-teal-700">英/政</span>
         </button>
       </div>
     </div>
@@ -388,11 +394,11 @@
       </div>
     </div>
 
-    <!-- ==================== 分区视图二：50 / 50 左右双栏学科章节与公共课进度 ==================== -->
+    <!-- ==================== 分区视图二：专业课进度 & 模考/刷题记分（双栏） ==================== -->
     <div id="sectionView_progress" class="hidden">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-        <!-- ==================== 左栏 ==================== -->
+        <!-- ==================== 左栏：userA 专业课章节 + 模考分数记录 ==================== -->
         <section class="bg-white rounded-2xl border border-blue-200/80 shadow-xs flex flex-col overflow-hidden">
           <div class="p-4 bg-gradient-to-r from-blue-50/90 to-slate-50 border-b border-blue-100">
             <div class="flex items-center justify-between gap-2 mb-2.5">
@@ -414,7 +420,7 @@
 
             <div>
               <div class="flex justify-between text-xs font-medium text-slate-600 mb-1">
-                <span>📚 专业课总进度</span>
+                <span>📚 专业课章节总进度</span>
                 <span id="progressTextA" class="text-blue-700 font-bold">0% (0/0)</span>
               </div>
               <div class="w-full h-2.5 bg-blue-100 rounded-full overflow-hidden">
@@ -423,7 +429,7 @@
             </div>
           </div>
 
-          <div id="accordionContainerA" class="p-3 sm:p-4 space-y-2.5 flex-1 overflow-y-auto custom-scrollbar max-h-[64vh]"></div>
+          <div id="accordionContainerA" class="p-3 sm:p-4 space-y-2.5 flex-1 overflow-y-auto custom-scrollbar max-h-[68vh]"></div>
 
           <div class="p-3.5 bg-slate-50/80 border-t border-slate-100">
             <div class="flex items-center justify-between mb-1.5">
@@ -437,7 +443,7 @@
           </div>
         </section>
 
-        <!-- ==================== 右栏 ==================== -->
+        <!-- ==================== 右栏：userB 专业课章节 + 教育学/专业课刷题记分 ==================== -->
         <section class="bg-white rounded-2xl border border-orange-200/80 shadow-xs flex flex-col overflow-hidden">
           <div class="p-4 bg-gradient-to-r from-orange-50/90 to-slate-50 border-b border-orange-100">
             <div class="flex items-center justify-between gap-2 mb-2.5">
@@ -463,7 +469,7 @@
 
             <div>
               <div class="flex justify-between text-xs font-medium text-slate-600 mb-1">
-                <span>🔥 专业课总进度</span>
+                <span>🔥 专业课章节总进度</span>
                 <span id="progressTextB" class="text-orange-600 font-bold">0% (0/0轮)</span>
               </div>
               <div class="w-full h-2.5 bg-orange-100 rounded-full overflow-hidden">
@@ -472,7 +478,7 @@
             </div>
           </div>
 
-          <div id="accordionContainerB" class="p-3 sm:p-4 space-y-2.5 flex-1 overflow-y-auto custom-scrollbar max-h-[64vh]"></div>
+          <div id="accordionContainerB" class="p-3 sm:p-4 space-y-2.5 flex-1 overflow-y-auto custom-scrollbar max-h-[68vh]"></div>
 
           <div class="p-3.5 bg-slate-50/80 border-t border-slate-100">
             <div class="flex items-center justify-between mb-1.5">
@@ -484,6 +490,39 @@
             <textarea id="noteB" rows="2" onchange="updateNote('B')" placeholder="记录今日复盘或留言..."
               class="w-full text-xs bg-white border border-slate-200 rounded-xl p-2.5 text-slate-700 focus:outline-none focus:border-orange-500 resize-none"></textarea>
           </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- ==================== 分区视图三：公共课（英语自由记录 & 政治十页纸+刷题分数） ==================== -->
+    <div id="sectionView_public" class="hidden">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        <!-- 左侧：userA 公共课 -->
+        <section class="bg-white rounded-2xl border border-blue-200/80 shadow-xs flex flex-col overflow-hidden">
+          <div class="p-4 bg-gradient-to-r from-teal-50/90 via-blue-50/50 to-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-6 rounded-full bg-blue-600"></span>
+              <span id="userAName_public" class="font-bold text-slate-800 text-base">懒羊羊</span>
+              <span class="text-xs font-semibold text-teal-700 bg-teal-100/80 px-2 py-0.5 rounded-md">公共课进度</span>
+            </div>
+            <span id="publicSummaryBadgeA" class="text-xs font-mono font-bold text-slate-500">英语 0 · 政治十页纸 0/10</span>
+          </div>
+          <div id="publicContainerA" class="p-3 sm:p-4 space-y-3.5 flex-1 overflow-y-auto custom-scrollbar max-h-[75vh]"></div>
+        </section>
+
+        <!-- 右侧：userB 公共课 -->
+        <section class="bg-white rounded-2xl border border-orange-200/80 shadow-xs flex flex-col overflow-hidden">
+          <div class="p-4 bg-gradient-to-r from-teal-50/90 via-orange-50/50 to-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-6 rounded-full bg-orange-500"></span>
+              <span id="userBName_public" class="font-bold text-slate-800 text-base">Daphne.</span>
+              <span class="text-xs font-semibold text-teal-700 bg-teal-100/80 px-2 py-0.5 rounded-md">公共课进度</span>
+            </div>
+            <span id="publicSummaryBadgeB" class="text-xs font-mono font-bold text-slate-500">英语 0 · 政治十页纸 0/10</span>
+          </div>
+          <div id="publicContainerB" class="p-3 sm:p-4 space-y-3.5 flex-1 overflow-y-auto custom-scrollbar max-h-[75vh]"></div>
         </section>
 
       </div>
@@ -554,7 +593,7 @@
         <h3 class="text-base font-bold text-slate-800">📋 今日复习战报</h3>
         <button onclick="closeReportModal()" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
       </div>
-      <textarea id="reportText" rows="15" readonly class="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-700 focus:outline-none mb-3"></textarea>
+      <textarea id="reportText" rows="16" readonly class="w-full text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-700 focus:outline-none mb-3"></textarea>
       <div class="flex justify-end gap-2">
         <button onclick="closeReportModal()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg">关闭</button>
         <button onclick="copyReport()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg shadow-xs">复制战报</button>
@@ -576,7 +615,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // 动态同步顶部导航栏高度到「周计划总完成度」吸顶位置，保证任何屏幕宽度下都无缝紧贴顶部栏
     function syncStickyBarOffset() {
       const header = document.getElementById("mainHeader");
       const stickyBar = document.getElementById("stickyWeekBarSection");
@@ -747,6 +785,39 @@
       return res;
     }
 
+    function normalizeTenPages(raw) {
+      const total = Number(raw?.total) > 0 ? Math.min(50, Math.max(1, Number(raw.total))) : 10;
+      const doneArr = Array.isArray(raw?.done) ? raw.done : [];
+      const done = Array.from({ length: total }, (_, i) => !!doneArr[i]);
+      return {
+        title: typeof raw?.title === "string" && raw.title.trim() ? raw.title.trim() : "十页纸背诵（待定模板）",
+        total,
+        done
+      };
+    }
+
+    function normalizePoliticsPapers(raw) {
+      const arr = Array.isArray(raw) ? raw : Object.values(raw || {});
+      return arr.filter(Boolean).map(p => ({
+        id: p.id || ("pp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6)),
+        date: p.date || getTodayStr(),
+        title: String(p.title || "政治模拟卷"),
+        grade: String(p.grade || "")
+      }));
+    }
+
+    function normalizeMockExams(raw) {
+      const arr = Array.isArray(raw) ? raw : Object.values(raw || {});
+      return arr.filter(Boolean).map(m => ({
+        id: m.id || ("mk_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6)),
+        date: m.date || getTodayStr(),
+        subject: String(m.subject || "综合"),
+        title: String(m.title || "模拟卷"),
+        score: String(m.score ?? ""),
+        note: String(m.note || "")
+      }));
+    }
+
     function normalizeWeeklyPlans(rawPlans) {
       const res = {};
       if (rawPlans && typeof rawPlans === "object") {
@@ -793,6 +864,13 @@
           english: [],
           politics: []
         },
+        politicsTenPages: {
+          title: "十页纸背诵（待定模板）",
+          total: 10,
+          done: Array(10).fill(false)
+        },
+        politicsPapers: [],
+        mockExams: [],
         note: "",
         likes: 0
       },
@@ -813,6 +891,13 @@
           english: [],
           politics: []
         },
+        politicsTenPages: {
+          title: "十页纸背诵（待定模板）",
+          total: 10,
+          done: Array(10).fill(false)
+        },
+        politicsPapers: [],
+        mockExams: [],
         note: "",
         likes: 0
       }
@@ -829,6 +914,9 @@
     let editingSubjectKey = "gaodai";
 
     let activeSectionTab = localStorage.getItem("kaoyan_active_tab") || "tasks";
+    if (!["tasks", "progress", "public"].includes(activeSectionTab)) {
+      activeSectionTab = "tasks";
+    }
     let overdueDrawerOpen = { A: false, B: false };
 
     let customizingChapterIdxA = null;
@@ -837,6 +925,8 @@
     let editingWeekTask = null;
     let editingDailyHabit = null;
     let editingFreeLog = null;
+    let editingPolPaper = null;
+    let editingMockExam = null;
 
     let collapsedDateGroups = {};
 
@@ -855,8 +945,8 @@
     lastValidSelectVal.A = String(todayDow);
     lastValidSelectVal.B = String(todayDow);
 
-    let openGroupsA = { gaodai: true, shufen: false, other: false, english: true, politics: false };
-    let openGroupsB = { ziran: true, renwen: false, gis: false, yaogan: false, other: false, english: true, politics: false };
+    let openGroupsA = { gaodai: true, shufen: false, other: false, mock: true };
+    let openGroupsB = { ziran: true, renwen: false, gis: false, yaogan: false, other: false, mock: true };
 
     // ==================== OneNote 顶部分区标签切换 ====================
     window.switchSectionTab = (tabKey) => {
@@ -867,26 +957,28 @@
     };
 
     function applySectionTabUI() {
-      const tasksView = document.getElementById("sectionView_tasks");
-      const progressView = document.getElementById("sectionView_progress");
-      const btnTasks = document.getElementById("tabBtn_tasks");
-      const btnProgress = document.getElementById("tabBtn_progress");
+      const views = {
+        tasks: document.getElementById("sectionView_tasks"),
+        progress: document.getElementById("sectionView_progress"),
+        public: document.getElementById("sectionView_public")
+      };
+      const btns = {
+        tasks: document.getElementById("tabBtn_tasks"),
+        progress: document.getElementById("tabBtn_progress"),
+        public: document.getElementById("tabBtn_public")
+      };
 
-      if (activeSectionTab === "progress") {
-        tasksView.classList.add("hidden");
-        progressView.classList.remove("hidden");
-        btnTasks.classList.remove("onenote-tab-active");
-        btnTasks.classList.add("onenote-tab-inactive");
-        btnProgress.classList.remove("onenote-tab-inactive");
-        btnProgress.classList.add("onenote-tab-active");
-      } else {
-        progressView.classList.add("hidden");
-        tasksView.classList.remove("hidden");
-        btnProgress.classList.remove("onenote-tab-active");
-        btnProgress.classList.add("onenote-tab-inactive");
-        btnTasks.classList.remove("onenote-tab-inactive");
-        btnTasks.classList.add("onenote-tab-active");
-      }
+      Object.keys(views).forEach(k => {
+        if (k === activeSectionTab) {
+          views[k].classList.remove("hidden");
+          btns[k].classList.remove("onenote-tab-inactive");
+          btns[k].classList.add("onenote-tab-active");
+        } else {
+          views[k].classList.add("hidden");
+          btns[k].classList.remove("onenote-tab-active");
+          btns[k].classList.add("onenote-tab-inactive");
+        }
+      });
     }
 
     // ==================== 多邻国风格鼓励徽章动效与文案 ====================
@@ -1195,6 +1287,9 @@
               weeklyPlans: normalizeWeeklyPlans(val.userA?.weeklyPlans),
               chapters: rawChaptersA.map(ch => normalizeChapterA(ch, subjectDims)),
               freeLogs: normalizeFreeLogs(val.userA?.freeLogs),
+              politicsTenPages: normalizeTenPages(val.userA?.politicsTenPages),
+              politicsPapers: normalizePoliticsPapers(val.userA?.politicsPapers),
+              mockExams: normalizeMockExams(val.userA?.mockExams),
               note: val.userA?.note || "",
               likes: val.userA?.likes || 0
             },
@@ -1207,6 +1302,9 @@
               targetRounds: val.userB?.targetRounds || 3,
               chapters: Array.isArray(val.userB?.chapters) ? val.userB.chapters.filter(Boolean) : [],
               freeLogs: normalizeFreeLogs(val.userB?.freeLogs),
+              politicsTenPages: normalizeTenPages(val.userB?.politicsTenPages),
+              politicsPapers: normalizePoliticsPapers(val.userB?.politicsPapers),
+              mockExams: normalizeMockExams(val.userB?.mockExams),
               note: val.userB?.note || "",
               likes: val.userB?.likes || 0
             }
@@ -1246,6 +1344,11 @@
         const el = document.getElementById(id);
         if (el && document.activeElement !== el) el.value = nameB;
       });
+
+      const pubNameA = document.getElementById("userAName_public");
+      if (pubNameA) pubNameA.textContent = nameA;
+      const pubNameB = document.getElementById("userBName_public");
+      if (pubNameB) pubNameB.textContent = nameB;
 
       document.getElementById("todayTitleA").textContent = `${nameA} · 今日能量`;
       document.getElementById("todayTitleB").textContent = `${nameB} · 今日能量`;
@@ -1287,118 +1390,635 @@
       renderWeeklyPanel();
       renderUserA();
       renderUserB();
+      renderPublicCoursesPage();
       syncStickyBarOffset();
     }
 
-    // ==================== 公共课（英语 & 政治）自由日志组件渲染 ====================
-    function renderFreeLogsAccordions(side) {
+    // ==================== 第2页底部：双人专业课模考 / 教育学刷题记分折叠区 ====================
+    function renderMockExamAccordion(side) {
       const user = side === "A" ? state.userA : state.userB;
       const openMap = side === "A" ? openGroupsA : openGroupsB;
+      const isOpen = !!openMap.mock;
       const toggleFn = side === "A" ? "toggleSubjectGroupA" : "toggleSubjectGroupB";
+      const list = Array.isArray(user.mockExams) ? user.mockExams : [];
 
-      const freeSubjects = [
-        {
-          key: "english",
-          title: "英语",
-          icon: "📖",
-          placeholder: "记录英语学习内容...",
-          headerStyle: "bg-teal-50/90 hover:bg-teal-100/70 border-teal-200",
-          badgeStyle: "bg-teal-100 text-teal-800",
-          btnStyle: "bg-teal-600 hover:bg-teal-700 text-white",
-          tagStyle: "bg-teal-50 text-teal-700 border-teal-200"
-        },
-        {
-          key: "politics",
-          title: "政治",
-          icon: "🚩",
-          placeholder: "记录政治学习内容...",
-          headerStyle: "bg-rose-50/80 hover:bg-rose-100/60 border-rose-200",
-          badgeStyle: "bg-rose-100 text-rose-800",
-          btnStyle: "bg-rose-600 hover:bg-rose-700 text-white",
-          tagStyle: "bg-rose-50 text-rose-700 border-rose-200"
-        }
-      ];
+      const subjectOptions = side === "A"
+        ? `
+          <option value="数学分析">数学分析</option>
+          <option value="高等代数">高等代数</option>
+          <option value="综合">综合</option>
+        `
+        : `
+          <option value="教育学综合">教育学综合</option>
+          <option value="教育原理">教育原理</option>
+          <option value="中外教育史">中外教育史</option>
+          <option value="教心与教研">教心与教研</option>
+          <option value="地理专业课">地理专业课</option>
+          <option value="综合刷题">综合刷题</option>
+        `;
 
-      return freeSubjects.map(sub => {
-        const isOpen = !!openMap[sub.key];
-        const logs = Array.isArray(user.freeLogs?.[sub.key]) ? user.freeLogs[sub.key] : [];
+      const titleText = side === "A" ? "🎯 专业课模考记录" : "📝 专业课 / 教育学刷题记分";
+      const placeholderText = side === "A" ? "试卷名称（如：北师真题/模拟卷一）" : "试卷名称（如：311真题/丹丹6套卷一）";
 
-        const listHtml = logs.length === 0
-          ? `<div class="text-center py-3 text-xs text-slate-400">暂无记录</div>`
-          : logs.map((item, idx) => {
-              const isEditing = editingFreeLog && editingFreeLog.side === side && editingFreeLog.subjKey === sub.key && editingFreeLog.idx === idx;
-              if (isEditing) {
-                return `
-                  <div class="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg border border-blue-500 ring-2 ring-blue-100 bg-white">
-                    <input id="editFreeLog_${side}_${sub.key}_${idx}" type="text" value="${escapeHtml(item.text)}"
-                      onkeydown="handleFreeLogEditKey(event, '${side}', '${sub.key}', ${idx})"
-                      onblur="saveFreeLogEdit('${side}', '${sub.key}', ${idx})"
-                      class="flex-1 min-w-0 text-xs font-medium text-slate-800 bg-transparent focus:outline-none" />
-                    <button onmousedown="event.preventDefault(); saveFreeLogEdit('${side}', '${sub.key}', ${idx})"
-                      class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold shrink-0 transition">
-                      保存
-                    </button>
-                    <button onmousedown="event.preventDefault(); cancelFreeLogEdit()"
-                      class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium shrink-0 transition">
-                      取消
-                    </button>
-                  </div>
-                `;
-              }
+      const numericScores = list
+        .map(m => {
+          const match = String(m.score || "").match(/^\d+(\.\d+)?/);
+          return match ? parseFloat(match[0]) : NaN;
+        })
+        .filter(n => !isNaN(n));
 
+      const maxScore = numericScores.length ? Math.max(...numericScores) : null;
+      const avgScore = numericScores.length
+        ? (numericScores.reduce((a, b) => a + b, 0) / numericScores.length).toFixed(1)
+        : null;
+
+      const statsStr = numericScores.length > 0
+        ? `均分 ${avgScore} · 最高 ${maxScore}`
+        : `${list.length} 份`;
+
+      const getSubjectBadgeStyle = (subj) => {
+        if (subj === "数学分析" || subj === "教育原理") return "bg-indigo-100 text-indigo-800 border-indigo-200";
+        if (subj === "高等代数" || subj === "中外教育史") return "bg-sky-100 text-sky-800 border-sky-200";
+        if (subj === "教心与教研") return "bg-amber-100 text-amber-800 border-amber-200";
+        if (subj === "地理专业课") return "bg-emerald-100 text-emerald-800 border-emerald-200";
+        return "bg-violet-100 text-violet-800 border-violet-200";
+      };
+
+      const rowsHtml = list.length === 0
+        ? `<div class="text-center py-4 text-xs text-slate-400">暂无试卷记分，上方输入卷名与分数即可记录</div>`
+        : list.map((item, idx) => {
+            const isEditing = editingMockExam && editingMockExam.side === side && editingMockExam.idx === idx;
+            if (isEditing) {
               return `
-                <div class="flex items-start justify-between gap-2 px-2.5 py-2 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:border-slate-300 transition">
-                  <div class="flex items-start gap-2 flex-1 min-w-0">
-                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 mt-0.5 ${sub.tagStyle}">
-                      ${formatMonthDayCN(item.date) || "今日"}
-                    </span>
-                    <span ondblclick="startEditFreeLog('${side}', '${sub.key}', ${idx})"
-                      class="text-xs font-medium text-slate-700 break-words leading-relaxed cursor-pointer">
-                      ${escapeHtml(item.text)}
-                    </span>
+                <div class="p-2.5 rounded-xl border border-indigo-500 ring-2 ring-indigo-100 bg-white space-y-2">
+                  <div class="flex flex-wrap gap-1.5">
+                    <input id="editMockTitle_${side}_${idx}" type="text" value="${escapeHtml(item.title)}"
+                      onkeydown="handleMockEditKey(event, '${side}', ${idx})"
+                      placeholder="试卷名称"
+                      class="flex-1 min-w-[120px] text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500" />
+                    <input id="editMockScore_${side}_${idx}" type="text" value="${escapeHtml(item.score)}"
+                      onkeydown="handleMockEditKey(event, '${side}', ${idx})"
+                      placeholder="分数"
+                      class="w-24 text-xs font-mono font-bold text-indigo-700 bg-indigo-50/50 border border-indigo-200 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500" />
                   </div>
-                  <div class="flex items-center gap-0.5 shrink-0">
-                    <button onclick="startEditFreeLog('${side}', '${sub.key}', ${idx})" type="button"
-                      class="text-slate-400 hover:text-blue-600 text-xs px-1 py-0.5 rounded hover:bg-slate-200/60 transition">✎</button>
-                    <button onclick="deleteFreeLog('${side}', '${sub.key}', ${idx})" type="button"
-                      class="text-slate-300 hover:text-rose-500 text-sm px-1 transition">&times;</button>
+                  <div class="flex items-center justify-between gap-1.5">
+                    <input id="editMockNote_${side}_${idx}" type="text" value="${escapeHtml(item.note)}"
+                      onkeydown="handleMockEditKey(event, '${side}', ${idx})"
+                      placeholder="复盘备注（选填）"
+                      class="flex-1 min-w-0 text-[11px] text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none" />
+                    <div class="flex items-center gap-1 shrink-0">
+                      <button type="button" onclick="saveMockExamEdit('${side}', ${idx})"
+                        class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition">
+                        保存
+                      </button>
+                      <button type="button" onclick="cancelMockExamEdit()"
+                        class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium transition">
+                        取消
+                      </button>
+                    </div>
                   </div>
                 </div>
               `;
-            }).join("");
+            }
 
-        const bodyHtml = !isOpen ? "" : `
-          <div class="p-2.5 space-y-2 bg-white border-t border-slate-100">
+            return `
+              <div class="p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:border-indigo-200 transition">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1.5 flex-1 min-w-0 flex-wrap">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${getSubjectBadgeStyle(item.subject)}">
+                      ${escapeHtml(item.subject)}
+                    </span>
+                    <span class="text-[11px] font-mono text-slate-400 shrink-0">${formatMonthDayCN(item.date)}</span>
+                    <span ondblclick="startEditMockExam('${side}', ${idx})"
+                      class="text-xs font-bold text-slate-800 truncate cursor-pointer hover:text-indigo-600">
+                      ${escapeHtml(item.title)}
+                    </span>
+                  </div>
+
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <span ondblclick="startEditMockExam('${side}', ${idx})"
+                      class="px-2 py-0.5 rounded-md text-xs font-mono font-extrabold bg-amber-100/90 text-amber-900 border border-amber-300 cursor-pointer">
+                      ${escapeHtml(item.score || "未记分")}
+                    </span>
+                    <button type="button" onclick="startEditMockExam('${side}', ${idx})"
+                      class="text-slate-400 hover:text-indigo-600 text-xs px-1 py-0.5 rounded hover:bg-slate-200/60 transition">✎</button>
+                    <button type="button" onclick="deleteMockExam('${side}', ${idx})"
+                      class="text-slate-300 hover:text-rose-500 text-sm px-0.5 transition">&times;</button>
+                  </div>
+                </div>
+                ${item.note ? `<div class="mt-1 text-[11px] text-slate-500 pl-1">💡 ${escapeHtml(item.note)}</div>` : ""}
+              </div>
+            `;
+          }).join("");
+
+      const headerBg = side === "A"
+        ? "bg-violet-50/90 hover:bg-violet-100/70 border-violet-200"
+        : "bg-amber-50/90 hover:bg-amber-100/70 border-amber-200";
+      const badgeBg = side === "A"
+        ? "bg-violet-100 text-violet-800"
+        : "bg-amber-100 text-amber-800";
+      const addBtnBg = side === "A"
+        ? "bg-indigo-600 hover:bg-indigo-700 text-white"
+        : "bg-orange-500 hover:bg-orange-600 text-white";
+
+      return `
+        <div class="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+          <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b transition ${headerBg}">
+            <button onclick="${toggleFn}('mock')" type="button" class="flex items-center gap-2 flex-1 min-w-0 text-left">
+              <span class="text-xs text-slate-700 font-mono w-3.5 shrink-0">${isOpen ? "▼" : "▶"}</span>
+              <span class="text-sm font-bold text-slate-800 truncate">${titleText}</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${badgeBg}">${statsStr}</span>
+            </button>
+          </div>
+
+          ${!isOpen ? "" : `
+            <div class="p-2.5 space-y-2.5 bg-white border-t border-slate-100">
+              <div class="p-2 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-1.5">
+                <div class="flex flex-wrap sm:flex-nowrap gap-1.5">
+                  <select id="mockSubj_${side}"
+                    class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700 font-semibold focus:outline-none focus:border-indigo-500 shrink-0">
+                    ${subjectOptions}
+                  </select>
+                  <input id="mockTitle_${side}" type="text"
+                    onkeydown="if(event.key==='Enter') addMockExam('${side}')"
+                    placeholder="${placeholderText}"
+                    class="flex-1 min-w-[120px] text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500" />
+                  <input id="mockScore_${side}" type="text"
+                    onkeydown="if(event.key==='Enter') addMockExam('${side}')"
+                    placeholder="分数(如 128)"
+                    class="w-24 sm:w-28 text-xs font-mono font-bold bg-amber-50/60 border border-amber-300 rounded-lg px-2 py-1.5 text-amber-900 placeholder:text-amber-600/60 focus:bg-white focus:outline-none focus:border-amber-500 shrink-0" />
+                </div>
+                <div class="flex gap-1.5">
+                  <input id="mockNote_${side}" type="text"
+                    onkeydown="if(event.key==='Enter') addMockExam('${side}')"
+                    placeholder="薄弱点 / 复盘备注（选填）..."
+                    class="flex-1 min-w-0 text-[11px] bg-white border border-slate-200 rounded-lg px-2.5 py-1 focus:outline-none focus:border-indigo-500" />
+                  <button onclick="addMockExam('${side}')" type="button"
+                    class="px-3 py-1 rounded-lg text-xs font-semibold shrink-0 transition ${addBtnBg}">
+                    + 记分
+                  </button>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                ${rowsHtml}
+              </div>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    window.addMockExam = (side) => {
+      const subjEl = document.getElementById(`mockSubj_${side}`);
+      const titleEl = document.getElementById(`mockTitle_${side}`);
+      const scoreEl = document.getElementById(`mockScore_${side}`);
+      const noteEl = document.getElementById(`mockNote_${side}`);
+
+      const title = titleEl ? titleEl.value.trim() : "";
+      const score = scoreEl ? scoreEl.value.trim() : "";
+      if (!title && !score) {
+        showToast("请输入试卷名称或分数");
+        return;
+      }
+
+      const user = side === "A" ? state.userA : state.userB;
+      if (!Array.isArray(user.mockExams)) user.mockExams = [];
+
+      user.mockExams.unshift({
+        id: "mk_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        date: getTodayStr(),
+        subject: subjEl ? subjEl.value : "综合",
+        title: title || "模拟测试",
+        score: score || "未记分",
+        note: noteEl ? noteEl.value.trim() : ""
+      });
+
+      if (titleEl) titleEl.value = "";
+      if (scoreEl) scoreEl.value = "";
+      if (noteEl) noteEl.value = "";
+      editingMockExam = null;
+
+      if (side === "A") renderUserA();
+      else renderUserB();
+      pushState();
+      showToast(`已记录分数：${score || "完成"}`);
+    };
+
+    window.startEditMockExam = (side, idx) => {
+      editingMockExam = { side, idx };
+      if (side === "A") renderUserA();
+      else renderUserB();
+      requestAnimationFrame(() => {
+        const scoreInp = document.getElementById(`editMockScore_${side}_${idx}`);
+        if (scoreInp) {
+          scoreInp.focus();
+          scoreInp.select();
+        }
+      });
+    };
+
+    window.saveMockExamEdit = (side, idx) => {
+      if (!editingMockExam || editingMockExam.side !== side || editingMockExam.idx !== idx) return;
+      const titleInp = document.getElementById(`editMockTitle_${side}_${idx}`);
+      const scoreInp = document.getElementById(`editMockScore_${side}_${idx}`);
+      const noteInp = document.getElementById(`editMockNote_${side}_${idx}`);
+
+      const user = side === "A" ? state.userA : state.userB;
+      const item = user.mockExams?.[idx];
+      if (item) {
+        const newTitle = titleInp ? titleInp.value.trim() : "";
+        const newScore = scoreInp ? scoreInp.value.trim() : "";
+        const newNote = noteInp ? noteInp.value.trim() : "";
+        if (newTitle) item.title = newTitle;
+        item.score = newScore || "未记分";
+        item.note = newNote;
+      }
+      editingMockExam = null;
+      if (side === "A") renderUserA();
+      else renderUserB();
+      pushState();
+      showToast("已更新记分");
+    };
+
+    window.cancelMockExamEdit = () => {
+      const side = editingMockExam?.side;
+      editingMockExam = null;
+      if (side === "A") renderUserA();
+      else if (side === "B") renderUserB();
+    };
+
+    window.handleMockEditKey = (e, side, idx) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        saveMockExamEdit(side, idx);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancelMockExamEdit();
+      }
+    };
+
+    window.deleteMockExam = (side, idx) => {
+      const user = side === "A" ? state.userA : state.userB;
+      if (!Array.isArray(user.mockExams)) return;
+      editingMockExam = null;
+      user.mockExams.splice(idx, 1);
+      if (side === "A") renderUserA();
+      else renderUserB();
+      pushState();
+    };
+
+    // ==================== 第3页：公共课（英语自由记录 + 政治十页纸背诵 + 政治刷题分数框） ====================
+    function renderPublicCoursesPage() {
+      renderPublicCourseSide("A");
+      renderPublicCourseSide("B");
+    }
+
+    function renderPublicCourseSide(side) {
+      const user = side === "A" ? state.userA : state.userB;
+      const container = document.getElementById(`publicContainer${side}`);
+      if (!container) return;
+
+      const engLogs = Array.isArray(user.freeLogs?.english) ? user.freeLogs.english : [];
+      const tp = normalizeTenPages(user.politicsTenPages);
+      const donePagesCount = tp.done.filter(Boolean).length;
+      const tpPct = tp.total === 0 ? 0 : Math.round((donePagesCount / tp.total) * 100);
+      const papers = Array.isArray(user.politicsPapers) ? user.politicsPapers : [];
+
+      const summaryBadge = document.getElementById(`publicSummaryBadge${side}`);
+      if (summaryBadge) {
+        summaryBadge.textContent = `英语 ${engLogs.length}条 · 十页纸 ${donePagesCount}/${tp.total} · 卷子 ${papers.length}份`;
+      }
+
+      // 1. 英语自由记录卡片
+      const engListHtml = engLogs.length === 0
+        ? `<div class="text-center py-3 text-xs text-slate-400">暂无英语学习记录</div>`
+        : engLogs.map((item, idx) => {
+            const isEditing = editingFreeLog && editingFreeLog.side === side && editingFreeLog.subjKey === "english" && editingFreeLog.idx === idx;
+            if (isEditing) {
+              return `
+                <div class="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg border border-teal-500 ring-2 ring-teal-100 bg-white">
+                  <input id="editFreeLog_${side}_english_${idx}" type="text" value="${escapeHtml(item.text)}"
+                    onkeydown="handleFreeLogEditKey(event, '${side}', 'english', ${idx})"
+                    onblur="saveFreeLogEdit('${side}', 'english', ${idx})"
+                    class="flex-1 min-w-0 text-xs font-medium text-slate-800 bg-transparent focus:outline-none" />
+                  <button onmousedown="event.preventDefault(); saveFreeLogEdit('${side}', 'english', ${idx})"
+                    class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold shrink-0 transition">
+                    保存
+                  </button>
+                  <button onmousedown="event.preventDefault(); cancelFreeLogEdit()"
+                    class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium shrink-0 transition">
+                    取消
+                  </button>
+                </div>
+              `;
+            }
+
+            return `
+              <div class="flex items-start justify-between gap-2 px-2.5 py-2 rounded-xl bg-slate-50/70 border border-slate-200/80 hover:border-teal-300 transition">
+                <div class="flex items-start gap-2 flex-1 min-w-0">
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 mt-0.5 bg-teal-50 text-teal-700 border-teal-200">
+                    ${formatMonthDayCN(item.date) || "今日"}
+                  </span>
+                  <span ondblclick="startEditFreeLog('${side}', 'english', ${idx})"
+                    class="text-xs font-medium text-slate-700 break-words leading-relaxed cursor-pointer">
+                    ${escapeHtml(item.text)}
+                  </span>
+                </div>
+                <div class="flex items-center gap-0.5 shrink-0">
+                  <button onclick="startEditFreeLog('${side}', 'english', ${idx})" type="button"
+                    class="text-slate-400 hover:text-teal-600 text-xs px-1 py-0.5 rounded hover:bg-slate-200/60 transition">✎</button>
+                  <button onclick="deleteFreeLog('${side}', 'english', ${idx})" type="button"
+                    class="text-slate-300 hover:text-rose-500 text-sm px-1 transition">&times;</button>
+                </div>
+              </div>
+            `;
+          }).join("");
+
+      const englishCardHtml = `
+        <div class="rounded-xl border border-teal-200/90 overflow-hidden shadow-2xs">
+          <div class="px-3.5 py-2.5 bg-teal-50/90 border-b border-teal-200/80 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-slate-800">📖 英语 · 自由记录</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-teal-100 text-teal-800">${engLogs.length}条</span>
+            </div>
+          </div>
+          <div class="p-3 bg-white space-y-2">
             <div class="flex gap-1.5">
-              <input id="freeLogInput_${side}_${sub.key}" type="text" onkeydown="if(event.key==='Enter') addFreeLog('${side}', '${sub.key}')"
-                placeholder="${sub.placeholder}"
-                class="flex-1 min-w-0 text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:bg-white focus:outline-none focus:border-blue-500" />
-              <button onclick="addFreeLog('${side}', '${sub.key}')"
-                class="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition ${sub.btnStyle}">
+              <input id="freeLogInput_${side}_english" type="text" onkeydown="if(event.key==='Enter') addFreeLog('${side}', 'english')"
+                placeholder="自由记录阅读、作文、单词复盘..."
+                class="flex-1 min-w-0 text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:bg-white focus:outline-none focus:border-teal-500" />
+              <button onclick="addFreeLog('${side}', 'english')"
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 bg-teal-600 hover:bg-teal-700 text-white transition">
                 + 记录
               </button>
             </div>
-            <div class="space-y-1.5">
-              ${listHtml}
+            <div class="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-0.5">
+              ${engListHtml}
             </div>
           </div>
-        `;
+        </div>
+      `;
 
+      // 2. 政治：十页纸背诵记录（待定模板） + 刷题卷子分数等级框
+      const pageButtonsHtml = Array.from({ length: tp.total }, (_, pIdx) => {
+        const checked = !!tp.done[pIdx];
         return `
-          <div class="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
-            <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b transition ${sub.headerStyle}">
-              <button onclick="${toggleFn}('${sub.key}')" class="flex items-center gap-2 flex-1 min-w-0 text-left">
-                <span class="text-xs text-slate-700 font-mono w-3.5 shrink-0">${isOpen ? "▼" : "▶"}</span>
-                <span class="text-sm font-bold text-slate-800 shrink-0">${sub.icon} ${sub.title}</span>
-                <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${sub.badgeStyle}">${logs.length}条</span>
-              </button>
-            </div>
-            ${bodyHtml}
-          </div>
+          <button type="button" onclick="toggleTenPageItem('${side}', ${pIdx})"
+            class="py-1.5 px-2 rounded-lg text-xs font-bold border transition flex items-center justify-center gap-1 ${
+              checked
+                ? "bg-rose-600 text-white border-rose-600 shadow-2xs"
+                : "bg-slate-50 text-slate-600 border-slate-200 hover:border-rose-300"
+            }">
+            <span>${checked ? "✓" : "○"}</span>
+            <span>第${pIdx + 1}页</span>
+          </button>
         `;
       }).join("");
+
+      const papersHtml = papers.length === 0
+        ? `<div class="text-center py-3 text-xs text-slate-400">暂无政治刷题记录，上方输入卷子与分数/等级即可添加</div>`
+        : papers.map((paper, idx) => {
+            const isEditing = editingPolPaper && editingPolPaper.side === side && editingPolPaper.idx === idx;
+            if (isEditing) {
+              return `
+                <div class="flex flex-wrap items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg border border-rose-500 ring-2 ring-rose-100 bg-white">
+                  <input id="editPolPaperTitle_${side}_${idx}" type="text" value="${escapeHtml(paper.title)}"
+                    onkeydown="handlePolPaperEditKey(event, '${side}', ${idx})"
+                    placeholder="卷子名称"
+                    class="flex-1 min-w-[110px] text-xs font-medium text-slate-800 bg-transparent focus:outline-none" />
+                  <input id="editPolPaperGrade_${side}_${idx}" type="text" value="${escapeHtml(paper.grade)}"
+                    onkeydown="handlePolPaperEditKey(event, '${side}', ${idx})"
+                    placeholder="分数/等级"
+                    class="w-24 text-xs font-mono font-bold text-amber-800 bg-amber-50 border border-amber-300 rounded px-1.5 py-0.5 focus:outline-none" />
+                  <div class="flex items-center gap-1 shrink-0">
+                    <button type="button" onclick="savePolPaperEdit('${side}', ${idx})"
+                      class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition">
+                      保存
+                    </button>
+                    <button type="button" onclick="cancelPolPaperEdit()"
+                      class="px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium transition">
+                      取消
+                    </button>
+                  </div>
+                </div>
+              `;
+            }
+
+            return `
+              <div class="flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:border-rose-200 transition">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 bg-rose-50 text-rose-700 border-rose-200">
+                    ${formatMonthDayCN(paper.date)}
+                  </span>
+                  <span ondblclick="startEditPolPaper('${side}', ${idx})"
+                    class="text-xs font-semibold text-slate-800 truncate cursor-pointer hover:text-rose-600">
+                    ${escapeHtml(paper.title)}
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <span ondblclick="startEditPolPaper('${side}', ${idx})"
+                    title="分数/等级"
+                    class="px-2 py-0.5 rounded-md text-xs font-mono font-extrabold bg-amber-100 text-amber-900 border border-amber-300 cursor-pointer">
+                    ${escapeHtml(paper.grade || "待记分")}
+                  </span>
+                  <button type="button" onclick="startEditPolPaper('${side}', ${idx})"
+                    class="text-slate-400 hover:text-rose-600 text-xs px-1 py-0.5 rounded hover:bg-slate-200/60 transition">✎</button>
+                  <button type="button" onclick="deletePolPaper('${side}', ${idx})"
+                    class="text-slate-300 hover:text-rose-500 text-sm px-0.5 transition">&times;</button>
+                </div>
+              </div>
+            `;
+          }).join("");
+
+      const politicsCardHtml = `
+        <div class="rounded-xl border border-rose-200/90 overflow-hidden shadow-2xs">
+          <div class="px-3.5 py-2.5 bg-rose-50/90 border-b border-rose-200/80 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-bold text-slate-800">🚩 政治 · 十页纸背诵 & 刷题记录</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800">
+              背诵 ${tpPct}% (${donePagesCount}/${tp.total})
+            </span>
+          </div>
+
+          <div class="p-3 bg-white space-y-3.5">
+            <!-- 十页纸模板背诵区 -->
+            <div class="p-2.5 rounded-xl bg-rose-50/40 border border-rose-200/70 space-y-2">
+              <div class="flex items-center justify-between gap-2 flex-wrap">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-bold text-rose-800">📄 ${escapeHtml(tp.title)}</span>
+                  <button type="button" onclick="renameTenPageTitle('${side}')"
+                    class="text-[11px] text-slate-400 hover:text-rose-600 px-1 rounded">✎改名</button>
+                </div>
+                <div class="flex items-center gap-1 text-[11px]">
+                  <span class="text-slate-500">总页数:</span>
+                  <button type="button" onclick="adjustTenPageTotal('${side}', -1)"
+                    class="w-5 h-5 rounded bg-white border border-slate-200 hover:bg-slate-100 font-bold text-slate-600">-</button>
+                  <span class="font-mono font-bold text-slate-700 px-1">${tp.total}</span>
+                  <button type="button" onclick="adjustTenPageTotal('${side}', 1)"
+                    class="w-5 h-5 rounded bg-white border border-slate-200 hover:bg-slate-100 font-bold text-slate-600">+</button>
+                </div>
+              </div>
+
+              <div class="w-full h-2 bg-rose-100 rounded-full overflow-hidden">
+                <div class="h-full bg-rose-600 rounded-full transition-all duration-300" style="width: ${tpPct}%"></div>
+              </div>
+
+              <div class="grid grid-cols-5 gap-1.5 pt-0.5">
+                ${pageButtonsHtml}
+              </div>
+            </div>
+
+            <!-- 政治刷题卷子 + 分数等级框 -->
+            <div class="space-y-2 pt-1 border-t border-slate-100">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-700">📝 刷题卷子记录（含分数/等级框）</span>
+                <span class="text-[11px] font-mono text-slate-400">已刷 ${papers.length} 份</span>
+              </div>
+
+              <div class="flex flex-wrap sm:flex-nowrap gap-1.5">
+                <input id="polPaperTitle_${side}" type="text"
+                  onkeydown="if(event.key==='Enter') addPolPaper('${side}')"
+                  placeholder="卷子名称（如：肖八第1套 / 腿四第2套）..."
+                  class="flex-1 min-w-[140px] text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:bg-white focus:outline-none focus:border-rose-500" />
+                <input id="polPaperGrade_${side}" type="text"
+                  onkeydown="if(event.key==='Enter') addPolPaper('${side}')"
+                  placeholder="分数/等级"
+                  title="分数等级框（如：38分 / A / 42/50）"
+                  class="w-24 sm:w-28 text-xs font-mono font-bold bg-amber-50/70 border border-amber-300 rounded-lg px-2 py-1.5 text-amber-900 placeholder:text-amber-600/60 focus:bg-white focus:outline-none focus:border-amber-500 shrink-0" />
+                <button type="button" onclick="addPolPaper('${side}')"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 bg-rose-600 hover:bg-rose-700 text-white transition">
+                  + 记录
+                </button>
+              </div>
+
+              <div class="space-y-1.5 max-h-56 overflow-y-auto custom-scrollbar pr-0.5">
+                ${papersHtml}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = englishCardHtml + politicsCardHtml;
     }
 
+    window.toggleTenPageItem = (side, pageIdx) => {
+      const user = side === "A" ? state.userA : state.userB;
+      user.politicsTenPages = normalizeTenPages(user.politicsTenPages);
+      user.politicsTenPages.done[pageIdx] = !user.politicsTenPages.done[pageIdx];
+      renderPublicCoursesPage();
+      pushState();
+    };
+
+    window.adjustTenPageTotal = (side, delta) => {
+      const user = side === "A" ? state.userA : state.userB;
+      const tp = normalizeTenPages(user.politicsTenPages);
+      const nextTotal = Math.min(36, Math.max(1, tp.total + delta));
+      if (nextTotal === tp.total) return;
+      tp.total = nextTotal;
+      tp.done = Array.from({ length: nextTotal }, (_, i) => !!tp.done[i]);
+      user.politicsTenPages = tp;
+      renderPublicCoursesPage();
+      pushState();
+    };
+
+    window.renameTenPageTitle = (side) => {
+      const user = side === "A" ? state.userA : state.userB;
+      const tp = normalizeTenPages(user.politicsTenPages);
+      const next = prompt("修改背诵模板名称（如：肖四背诵 / 腿姐十页纸）：", tp.title);
+      if (next && next.trim()) {
+        tp.title = next.trim();
+        user.politicsTenPages = tp;
+        renderPublicCoursesPage();
+        pushState();
+      }
+    };
+
+    window.addPolPaper = (side) => {
+      const titleInput = document.getElementById(`polPaperTitle_${side}`);
+      const gradeInput = document.getElementById(`polPaperGrade_${side}`);
+      const title = titleInput ? titleInput.value.trim() : "";
+      const grade = gradeInput ? gradeInput.value.trim() : "";
+      if (!title && !grade) {
+        showToast("请输入卷子名称或分数等级");
+        return;
+      }
+
+      const user = side === "A" ? state.userA : state.userB;
+      if (!Array.isArray(user.politicsPapers)) user.politicsPapers = [];
+      user.politicsPapers.unshift({
+        id: "pp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        date: getTodayStr(),
+        title: title || "政治套卷",
+        grade: grade || "已完成"
+      });
+
+      if (titleInput) titleInput.value = "";
+      if (gradeInput) gradeInput.value = "";
+      editingPolPaper = null;
+      renderPublicCoursesPage();
+      pushState();
+      showToast("已记录政治刷题");
+    };
+
+    window.startEditPolPaper = (side, idx) => {
+      editingPolPaper = { side, idx };
+      renderPublicCoursesPage();
+      requestAnimationFrame(() => {
+        const inp = document.getElementById(`editPolPaperGrade_${side}_${idx}`);
+        if (inp) {
+          inp.focus();
+          inp.select();
+        }
+      });
+    };
+
+    window.savePolPaperEdit = (side, idx) => {
+      if (!editingPolPaper || editingPolPaper.side !== side || editingPolPaper.idx !== idx) return;
+      const titleInp = document.getElementById(`editPolPaperTitle_${side}_${idx}`);
+      const gradeInp = document.getElementById(`editPolPaperGrade_${side}_${idx}`);
+      const user = side === "A" ? state.userA : state.userB;
+      const item = user.politicsPapers?.[idx];
+      if (item) {
+        const nt = titleInp ? titleInp.value.trim() : "";
+        const ng = gradeInp ? gradeInp.value.trim() : "";
+        if (nt) item.title = nt;
+        item.grade = ng || "已完成";
+      }
+      editingPolPaper = null;
+      renderPublicCoursesPage();
+      pushState();
+      showToast("已更新");
+    };
+
+    window.cancelPolPaperEdit = () => {
+      editingPolPaper = null;
+      renderPublicCoursesPage();
+    };
+
+    window.handlePolPaperEditKey = (e, side, idx) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        savePolPaperEdit(side, idx);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancelPolPaperEdit();
+      }
+    };
+
+    window.deletePolPaper = (side, idx) => {
+      const user = side === "A" ? state.userA : state.userB;
+      if (!Array.isArray(user.politicsPapers)) return;
+      editingPolPaper = null;
+      user.politicsPapers.splice(idx, 1);
+      renderPublicCoursesPage();
+      pushState();
+    };
+
+    // ==================== 英语自由日志操作 ====================
     window.addFreeLog = (side, subjKey) => {
       const input = document.getElementById(`freeLogInput_${side}_${subjKey}`);
       const text = input ? input.value.trim() : "";
@@ -1416,16 +2036,14 @@
 
       input.value = "";
       editingFreeLog = null;
-      if (side === "A") renderUserA();
-      else renderUserB();
+      renderPublicCoursesPage();
       pushState();
-      showToast(`已记录${subjKey === "english" ? "英语" : "政治"}`);
+      showToast("已记录英语学习");
     };
 
     window.startEditFreeLog = (side, subjKey, idx) => {
       editingFreeLog = { side, subjKey, idx };
-      if (side === "A") renderUserA();
-      else renderUserB();
+      renderPublicCoursesPage();
       requestAnimationFrame(() => {
         const input = document.getElementById(`editFreeLog_${side}_${subjKey}_${idx}`);
         if (input) {
@@ -1445,21 +2063,17 @@
       const item = user.freeLogs?.[subjKey]?.[idx];
       if (item && newText && newText !== item.text) {
         item.text = newText;
-        if (side === "A") renderUserA();
-        else renderUserB();
+        renderPublicCoursesPage();
         pushState();
         showToast("已更新");
       } else {
-        if (side === "A") renderUserA();
-        else renderUserB();
+        renderPublicCoursesPage();
       }
     };
 
     window.cancelFreeLogEdit = () => {
-      const side = editingFreeLog?.side;
       editingFreeLog = null;
-      if (side === "A") renderUserA();
-      else if (side === "B") renderUserB();
+      renderPublicCoursesPage();
     };
 
     window.handleFreeLogEditKey = (e, side, subjKey, idx) => {
@@ -1477,8 +2091,7 @@
       if (!user.freeLogs?.[subjKey]) return;
       editingFreeLog = null;
       user.freeLogs[subjKey].splice(idx, 1);
-      if (side === "A") renderUserA();
-      else renderUserB();
+      renderPublicCoursesPage();
       pushState();
     };
 
@@ -2141,7 +2754,7 @@
       pushState();
     };
 
-    // ==================== 左栏：高代/数分折叠菜单 + 英语/政治自由记录 ====================
+    // ==================== 左栏：高代/数分折叠菜单 + 专业课模考记分 ====================
     window.toggleSubjectGroupA = (groupKey) => {
       openGroupsA[groupKey] = !openGroupsA[groupKey];
       renderUserA();
@@ -2385,11 +2998,11 @@
           `;
         }).join("");
 
-      const freeLogsHtml = renderFreeLogsAccordions("A");
-      container.innerHTML = chapterAccordionsHtml + freeLogsHtml;
+      const mockHtml = renderMockExamAccordion("A");
+      container.innerHTML = chapterAccordionsHtml + mockHtml;
     }
 
-    // ==================== 右栏：地理 4 科 + 英语/政治自由记录 ====================
+    // ==================== 右栏：地理 4 科 + 教育学/专业课刷题记分 ====================
     window.toggleSubjectGroupB = (groupKey) => {
       openGroupsB[groupKey] = !openGroupsB[groupKey];
       renderUserB();
@@ -2652,8 +3265,8 @@
           `;
         }).join("");
 
-      const freeLogsHtml = renderFreeLogsAccordions("B");
-      container.innerHTML = geoAccordionsHtml + freeLogsHtml;
+      const mockHtml = renderMockExamAccordion("B");
+      container.innerHTML = geoAccordionsHtml + mockHtml;
     }
 
     // ==================== 弹窗与基础操作 ====================
@@ -2927,13 +3540,24 @@
         }).join("\n");
       };
 
+      const formatMockSummary = (user) => {
+        const todayMocks = (user.mockExams || []).filter(m => m.date === todayStr);
+        if (!todayMocks.length) return "";
+        return "\n[今日专业课模考/刷题记分]\n" + todayMocks.map(m =>
+          `  🎯 [${m.subject}] ${m.title}：${m.score}`
+        ).join("\n") + "\n";
+      };
+
       const formatPublicCourses = (user) => {
         const todayEng = (user.freeLogs?.english || []).filter(l => l.date === todayStr);
-        const todayPol = (user.freeLogs?.politics || []).filter(l => l.date === todayStr);
-        if (!todayEng.length && !todayPol.length) return "";
-        let str = "\n[公共课今日记录]\n";
+        const todayPolPapers = (user.politicsPapers || []).filter(p => p.date === todayStr);
+        const tp = normalizeTenPages(user.politicsTenPages);
+        const tpDoneCount = tp.done.filter(Boolean).length;
+
+        let str = "\n[公共课进度]\n";
         todayEng.forEach(l => { str += `  📖 英语：${l.text}\n`; });
-        todayPol.forEach(l => { str += `  🚩 政治：${l.text}\n`; });
+        str += `  🚩 政治${tp.title}：${tpDoneCount}/${tp.total} 页\n`;
+        todayPolPapers.forEach(p => { str += `  📝 政治刷题：${p.title}（${p.grade}）\n`; });
         return str;
       };
 
@@ -2965,12 +3589,12 @@
 📘 ${state.userA.name}（累计补做 ${catchupA.doneCatchupCount} 项）
 ${formatDailySummary(state.userA)}${formatWeekSummary(state.userA)}
 [专业课进度 ${pctA}]
-${linesA}${formatPublicCourses(state.userA)}
+${linesA}${formatMockSummary(state.userA)}${formatPublicCourses(state.userA)}
 ${state.userA.note ? `💬 复盘：${state.userA.note}\n` : ""}
 📙 ${state.userB.name}（累计补做 ${catchupB.doneCatchupCount} 项）
 ${formatDailySummary(state.userB)}${formatWeekSummary(state.userB)}
 [专业课进度 ${pctB}]
-${linesB}${formatPublicCourses(state.userB)}
+${linesB}${formatMockSummary(state.userB)}${formatPublicCourses(state.userB)}
 ${state.userB.note ? `💬 复盘：${state.userB.note}\n` : ""}`;
 
       document.getElementById("reportText").value = report;
