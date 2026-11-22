@@ -443,7 +443,7 @@
           </div>
         </section>
 
-        <!-- ==================== 右栏：userB 专业课章节 + 教育学/专业课刷题记分 ==================== -->
+        <!-- ==================== 右栏：userB 专业课章节 + 丹丹/凯程/冬青套卷记分 ==================== -->
         <section class="bg-white rounded-2xl border border-orange-200/80 shadow-xs flex flex-col overflow-hidden">
           <div class="p-4 bg-gradient-to-r from-orange-50/90 to-slate-50 border-b border-orange-100">
             <div class="flex items-center justify-between gap-2 mb-2.5">
@@ -663,6 +663,33 @@
       other: ["做笔记", "刷习题", "整理错题"]
     };
 
+    const PRESET_USERB_SETS = [
+      ...Array.from({ length: 6 }, (_, i) => ({
+        id: `preset_dandan_${i + 1}`,
+        series: "丹丹六套卷",
+        title: `丹丹六套卷 · 第${i + 1}套`,
+        score: "",
+        date: "",
+        note: ""
+      })),
+      ...Array.from({ length: 6 }, (_, i) => ({
+        id: `preset_kaicheng_${i + 1}`,
+        series: "凯程六套卷",
+        title: `凯程六套卷 · 第${i + 1}套`,
+        score: "",
+        date: "",
+        note: ""
+      })),
+      ...Array.from({ length: 5 }, (_, i) => ({
+        id: `preset_dongqing_${i + 1}`,
+        series: "冬青五套卷",
+        title: `冬青五套卷 · 第${i + 1}套`,
+        score: "",
+        date: "",
+        note: ""
+      }))
+    ];
+
     const DAY_LABELS = {
       1: "周一", 2: "周二", 3: "周三", 4: "周四", 5: "周五", 6: "周六", 7: "周日", 0: "未设日期"
     };
@@ -806,7 +833,7 @@
       }));
     }
 
-    function normalizeMockExams(raw) {
+    function normalizeMockExamsA(raw) {
       const arr = Array.isArray(raw) ? raw : Object.values(raw || {});
       return arr.filter(Boolean).map(m => ({
         id: m.id || ("mk_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6)),
@@ -816,6 +843,36 @@
         score: String(m.score ?? ""),
         note: String(m.note || "")
       }));
+    }
+
+    function inferSeriesB(title) {
+      if (title.includes("丹丹")) return "丹丹六套卷";
+      if (title.includes("凯程")) return "凯程六套卷";
+      if (title.includes("冬青")) return "冬青五套卷";
+      return "其他模拟卷";
+    }
+
+    function normalizeMockExamsB(raw) {
+      const arr = Array.isArray(raw) ? raw : Object.values(raw || {});
+      const cleaned = arr.filter(Boolean).map(m => ({
+        id: m.id || ("mkb_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6)),
+        series: m.series || inferSeriesB(String(m.title || "")),
+        title: String(m.title || "模拟卷"),
+        score: String(m.score ?? ""),
+        date: String(m.date || ""),
+        note: String(m.note || "")
+      }));
+
+      // 确保丹丹六套卷、凯程六套卷、冬青五套卷预设始终存在
+      const existingIds = new Set(cleaned.map(x => x.id));
+      const existingTitles = new Set(cleaned.map(x => x.title));
+      const result = [...cleaned];
+      PRESET_USERB_SETS.forEach(preset => {
+        if (!existingIds.has(preset.id) && !existingTitles.has(preset.title)) {
+          result.push({ ...preset });
+        }
+      });
+      return result;
     }
 
     function normalizeWeeklyPlans(rawPlans) {
@@ -897,7 +954,7 @@
           done: Array(10).fill(false)
         },
         politicsPapers: [],
-        mockExams: [],
+        mockExams: JSON.parse(JSON.stringify(PRESET_USERB_SETS)),
         note: "",
         likes: 0
       }
@@ -926,7 +983,7 @@
     let editingDailyHabit = null;
     let editingFreeLog = null;
     let editingPolPaper = null;
-    let editingMockExam = null;
+    let editingMockExamA = null;
 
     let collapsedDateGroups = {};
 
@@ -1289,7 +1346,7 @@
               freeLogs: normalizeFreeLogs(val.userA?.freeLogs),
               politicsTenPages: normalizeTenPages(val.userA?.politicsTenPages),
               politicsPapers: normalizePoliticsPapers(val.userA?.politicsPapers),
-              mockExams: normalizeMockExams(val.userA?.mockExams),
+              mockExams: normalizeMockExamsA(val.userA?.mockExams),
               note: val.userA?.note || "",
               likes: val.userA?.likes || 0
             },
@@ -1304,7 +1361,7 @@
               freeLogs: normalizeFreeLogs(val.userB?.freeLogs),
               politicsTenPages: normalizeTenPages(val.userB?.politicsTenPages),
               politicsPapers: normalizePoliticsPapers(val.userB?.politicsPapers),
-              mockExams: normalizeMockExams(val.userB?.mockExams),
+              mockExams: normalizeMockExamsB(val.userB?.mockExams),
               note: val.userB?.note || "",
               likes: val.userB?.likes || 0
             }
@@ -1394,31 +1451,10 @@
       syncStickyBarOffset();
     }
 
-    // ==================== 第2页底部：双人专业课模考 / 教育学刷题记分折叠区 ====================
-    function renderMockExamAccordion(side) {
-      const user = side === "A" ? state.userA : state.userB;
-      const openMap = side === "A" ? openGroupsA : openGroupsB;
-      const isOpen = !!openMap.mock;
-      const toggleFn = side === "A" ? "toggleSubjectGroupA" : "toggleSubjectGroupB";
-      const list = Array.isArray(user.mockExams) ? user.mockExams : [];
-
-      const subjectOptions = side === "A"
-        ? `
-          <option value="数学分析">数学分析</option>
-          <option value="高等代数">高等代数</option>
-          <option value="综合">综合</option>
-        `
-        : `
-          <option value="教育学综合">教育学综合</option>
-          <option value="教育原理">教育原理</option>
-          <option value="中外教育史">中外教育史</option>
-          <option value="教心与教研">教心与教研</option>
-          <option value="地理专业课">地理专业课</option>
-          <option value="综合刷题">综合刷题</option>
-        `;
-
-      const titleText = side === "A" ? "🎯 专业课模考记录" : "📝 专业课 / 教育学刷题记分";
-      const placeholderText = side === "A" ? "试卷名称（如：北师真题/模拟卷一）" : "试卷名称（如：311真题/丹丹6套卷一）";
+    // ==================== 第2页左栏底部：userA 专业课模考记录（支持改日期） ====================
+    function renderMockExamAccordionA() {
+      const isOpen = !!openGroupsA.mock;
+      const list = Array.isArray(state.userA.mockExams) ? state.userA.mockExams : [];
 
       const numericScores = list
         .map(m => {
@@ -1437,41 +1473,41 @@
         : `${list.length} 份`;
 
       const getSubjectBadgeStyle = (subj) => {
-        if (subj === "数学分析" || subj === "教育原理") return "bg-indigo-100 text-indigo-800 border-indigo-200";
-        if (subj === "高等代数" || subj === "中外教育史") return "bg-sky-100 text-sky-800 border-sky-200";
-        if (subj === "教心与教研") return "bg-amber-100 text-amber-800 border-amber-200";
-        if (subj === "地理专业课") return "bg-emerald-100 text-emerald-800 border-emerald-200";
+        if (subj === "数学分析") return "bg-indigo-100 text-indigo-800 border-indigo-200";
+        if (subj === "高等代数") return "bg-sky-100 text-sky-800 border-sky-200";
         return "bg-violet-100 text-violet-800 border-violet-200";
       };
 
       const rowsHtml = list.length === 0
-        ? `<div class="text-center py-4 text-xs text-slate-400">暂无试卷记分，上方输入卷名与分数即可记录</div>`
+        ? `<div class="text-center py-4 text-xs text-slate-400">暂无模考记录，上方输入卷名与分数即可添加</div>`
         : list.map((item, idx) => {
-            const isEditing = editingMockExam && editingMockExam.side === side && editingMockExam.idx === idx;
+            const isEditing = editingMockExamA === idx;
             if (isEditing) {
               return `
                 <div class="p-2.5 rounded-xl border border-indigo-500 ring-2 ring-indigo-100 bg-white space-y-2">
                   <div class="flex flex-wrap gap-1.5">
-                    <input id="editMockTitle_${side}_${idx}" type="text" value="${escapeHtml(item.title)}"
-                      onkeydown="handleMockEditKey(event, '${side}', ${idx})"
+                    <input id="editMockTitleA_${idx}" type="text" value="${escapeHtml(item.title)}"
+                      onkeydown="handleMockEditKeyA(event, ${idx})"
                       placeholder="试卷名称"
                       class="flex-1 min-w-[120px] text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500" />
-                    <input id="editMockScore_${side}_${idx}" type="text" value="${escapeHtml(item.score)}"
-                      onkeydown="handleMockEditKey(event, '${side}', ${idx})"
+                    <input id="editMockScoreA_${idx}" type="text" value="${escapeHtml(item.score)}"
+                      onkeydown="handleMockEditKeyA(event, ${idx})"
                       placeholder="分数"
                       class="w-24 text-xs font-mono font-bold text-indigo-700 bg-indigo-50/50 border border-indigo-200 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500" />
+                    <input id="editMockDateA_${idx}" type="date" value="${escapeHtml(item.date || getTodayStr())}"
+                      class="text-xs font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500" />
                   </div>
                   <div class="flex items-center justify-between gap-1.5">
-                    <input id="editMockNote_${side}_${idx}" type="text" value="${escapeHtml(item.note)}"
-                      onkeydown="handleMockEditKey(event, '${side}', ${idx})"
+                    <input id="editMockNoteA_${idx}" type="text" value="${escapeHtml(item.note)}"
+                      onkeydown="handleMockEditKeyA(event, ${idx})"
                       placeholder="复盘备注（选填）"
                       class="flex-1 min-w-0 text-[11px] text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none" />
                     <div class="flex items-center gap-1 shrink-0">
-                      <button type="button" onclick="saveMockExamEdit('${side}', ${idx})"
+                      <button type="button" onclick="saveMockExamEditA(${idx})"
                         class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold transition">
                         保存
                       </button>
-                      <button type="button" onclick="cancelMockExamEdit()"
+                      <button type="button" onclick="cancelMockExamEditA()"
                         class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-medium transition">
                         取消
                       </button>
@@ -1488,21 +1524,24 @@
                     <span class="px-1.5 py-0.5 rounded text-[10px] font-bold border shrink-0 ${getSubjectBadgeStyle(item.subject)}">
                       ${escapeHtml(item.subject)}
                     </span>
-                    <span class="text-[11px] font-mono text-slate-400 shrink-0">${formatMonthDayCN(item.date)}</span>
-                    <span ondblclick="startEditMockExam('${side}', ${idx})"
+                    <input type="date" value="${escapeHtml(item.date || getTodayStr())}"
+                      onchange="updateMockDateA(${idx}, this.value)"
+                      title="点击修改做题日期"
+                      class="text-[11px] font-mono text-slate-500 bg-white border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-indigo-500 shrink-0" />
+                    <span ondblclick="startEditMockExamA(${idx})"
                       class="text-xs font-bold text-slate-800 truncate cursor-pointer hover:text-indigo-600">
                       ${escapeHtml(item.title)}
                     </span>
                   </div>
 
                   <div class="flex items-center gap-1.5 shrink-0">
-                    <span ondblclick="startEditMockExam('${side}', ${idx})"
+                    <span ondblclick="startEditMockExamA(${idx})"
                       class="px-2 py-0.5 rounded-md text-xs font-mono font-extrabold bg-amber-100/90 text-amber-900 border border-amber-300 cursor-pointer">
                       ${escapeHtml(item.score || "未记分")}
                     </span>
-                    <button type="button" onclick="startEditMockExam('${side}', ${idx})"
+                    <button type="button" onclick="startEditMockExamA(${idx})"
                       class="text-slate-400 hover:text-indigo-600 text-xs px-1 py-0.5 rounded hover:bg-slate-200/60 transition">✎</button>
-                    <button type="button" onclick="deleteMockExam('${side}', ${idx})"
+                    <button type="button" onclick="deleteMockExamA(${idx})"
                       class="text-slate-300 hover:text-rose-500 text-sm px-0.5 transition">&times;</button>
                   </div>
                 </div>
@@ -1511,23 +1550,13 @@
             `;
           }).join("");
 
-      const headerBg = side === "A"
-        ? "bg-violet-50/90 hover:bg-violet-100/70 border-violet-200"
-        : "bg-amber-50/90 hover:bg-amber-100/70 border-amber-200";
-      const badgeBg = side === "A"
-        ? "bg-violet-100 text-violet-800"
-        : "bg-amber-100 text-amber-800";
-      const addBtnBg = side === "A"
-        ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-        : "bg-orange-500 hover:bg-orange-600 text-white";
-
       return `
         <div class="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
-          <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b transition ${headerBg}">
-            <button onclick="${toggleFn}('mock')" type="button" class="flex items-center gap-2 flex-1 min-w-0 text-left">
+          <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b transition bg-violet-50/90 hover:bg-violet-100/70 border-violet-200">
+            <button onclick="toggleSubjectGroupA('mock')" type="button" class="flex items-center gap-2 flex-1 min-w-0 text-left">
               <span class="text-xs text-slate-700 font-mono w-3.5 shrink-0">${isOpen ? "▼" : "▶"}</span>
-              <span class="text-sm font-bold text-slate-800 truncate">${titleText}</span>
-              <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 ${badgeBg}">${statsStr}</span>
+              <span class="text-sm font-bold text-slate-800 truncate">🎯 专业课模考记录</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 bg-violet-100 text-violet-800">${statsStr}</span>
             </button>
           </div>
 
@@ -1535,26 +1564,31 @@
             <div class="p-2.5 space-y-2.5 bg-white border-t border-slate-100">
               <div class="p-2 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-1.5">
                 <div class="flex flex-wrap sm:flex-nowrap gap-1.5">
-                  <select id="mockSubj_${side}"
+                  <select id="mockSubjA"
                     class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700 font-semibold focus:outline-none focus:border-indigo-500 shrink-0">
-                    ${subjectOptions}
+                    <option value="数学分析">数学分析</option>
+                    <option value="高等代数">高等代数</option>
+                    <option value="综合">综合</option>
                   </select>
-                  <input id="mockTitle_${side}" type="text"
-                    onkeydown="if(event.key==='Enter') addMockExam('${side}')"
-                    placeholder="${placeholderText}"
+                  <input id="mockTitleA" type="text"
+                    onkeydown="if(event.key==='Enter') addMockExamA()"
+                    placeholder="试卷名称（如：北师真题/模拟卷一）"
                     class="flex-1 min-w-[120px] text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500" />
-                  <input id="mockScore_${side}" type="text"
-                    onkeydown="if(event.key==='Enter') addMockExam('${side}')"
+                  <input id="mockScoreA" type="text"
+                    onkeydown="if(event.key==='Enter') addMockExamA()"
                     placeholder="分数(如 128)"
                     class="w-24 sm:w-28 text-xs font-mono font-bold bg-amber-50/60 border border-amber-300 rounded-lg px-2 py-1.5 text-amber-900 placeholder:text-amber-600/60 focus:bg-white focus:outline-none focus:border-amber-500 shrink-0" />
                 </div>
-                <div class="flex gap-1.5">
-                  <input id="mockNote_${side}" type="text"
-                    onkeydown="if(event.key==='Enter') addMockExam('${side}')"
+                <div class="flex flex-wrap sm:flex-nowrap gap-1.5">
+                  <input id="mockDateA" type="date" value="${getTodayStr()}"
+                    title="做题日期"
+                    class="text-xs font-mono bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 focus:outline-none focus:border-indigo-500 shrink-0" />
+                  <input id="mockNoteA" type="text"
+                    onkeydown="if(event.key==='Enter') addMockExamA()"
                     placeholder="薄弱点 / 复盘备注（选填）..."
                     class="flex-1 min-w-0 text-[11px] bg-white border border-slate-200 rounded-lg px-2.5 py-1 focus:outline-none focus:border-indigo-500" />
-                  <button onclick="addMockExam('${side}')" type="button"
-                    class="px-3 py-1 rounded-lg text-xs font-semibold shrink-0 transition ${addBtnBg}">
+                  <button onclick="addMockExamA()" type="button"
+                    class="px-3 py-1 rounded-lg text-xs font-semibold shrink-0 transition bg-indigo-600 hover:bg-indigo-700 text-white">
                     + 记分
                   </button>
                 </div>
@@ -1569,11 +1603,12 @@
       `;
     }
 
-    window.addMockExam = (side) => {
-      const subjEl = document.getElementById(`mockSubj_${side}`);
-      const titleEl = document.getElementById(`mockTitle_${side}`);
-      const scoreEl = document.getElementById(`mockScore_${side}`);
-      const noteEl = document.getElementById(`mockNote_${side}`);
+    window.addMockExamA = () => {
+      const subjEl = document.getElementById("mockSubjA");
+      const titleEl = document.getElementById("mockTitleA");
+      const scoreEl = document.getElementById("mockScoreA");
+      const dateEl = document.getElementById("mockDateA");
+      const noteEl = document.getElementById("mockNoteA");
 
       const title = titleEl ? titleEl.value.trim() : "";
       const score = scoreEl ? scoreEl.value.trim() : "";
@@ -1582,12 +1617,10 @@
         return;
       }
 
-      const user = side === "A" ? state.userA : state.userB;
-      if (!Array.isArray(user.mockExams)) user.mockExams = [];
-
-      user.mockExams.unshift({
+      if (!Array.isArray(state.userA.mockExams)) state.userA.mockExams = [];
+      state.userA.mockExams.unshift({
         id: "mk_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
-        date: getTodayStr(),
+        date: (dateEl && dateEl.value) ? dateEl.value : getTodayStr(),
         subject: subjEl ? subjEl.value : "综合",
         title: title || "模拟测试",
         score: score || "未记分",
@@ -1597,20 +1630,26 @@
       if (titleEl) titleEl.value = "";
       if (scoreEl) scoreEl.value = "";
       if (noteEl) noteEl.value = "";
-      editingMockExam = null;
-
-      if (side === "A") renderUserA();
-      else renderUserB();
+      editingMockExamA = null;
+      renderUserA();
       pushState();
       showToast(`已记录分数：${score || "完成"}`);
     };
 
-    window.startEditMockExam = (side, idx) => {
-      editingMockExam = { side, idx };
-      if (side === "A") renderUserA();
-      else renderUserB();
+    window.updateMockDateA = (idx, newDate) => {
+      const item = state.userA.mockExams?.[idx];
+      if (!item || !newDate) return;
+      item.date = newDate;
+      renderUserA();
+      pushState();
+      showToast(`已修改日期为 ${formatMonthDayCN(newDate)}`);
+    };
+
+    window.startEditMockExamA = (idx) => {
+      editingMockExamA = idx;
+      renderUserA();
       requestAnimationFrame(() => {
-        const scoreInp = document.getElementById(`editMockScore_${side}_${idx}`);
+        const scoreInp = document.getElementById(`editMockScoreA_${idx}`);
         if (scoreInp) {
           scoreInp.focus();
           scoreInp.select();
@@ -1618,53 +1657,271 @@
       });
     };
 
-    window.saveMockExamEdit = (side, idx) => {
-      if (!editingMockExam || editingMockExam.side !== side || editingMockExam.idx !== idx) return;
-      const titleInp = document.getElementById(`editMockTitle_${side}_${idx}`);
-      const scoreInp = document.getElementById(`editMockScore_${side}_${idx}`);
-      const noteInp = document.getElementById(`editMockNote_${side}_${idx}`);
+    window.saveMockExamEditA = (idx) => {
+      if (editingMockExamA !== idx) return;
+      const titleInp = document.getElementById(`editMockTitleA_${idx}`);
+      const scoreInp = document.getElementById(`editMockScoreA_${idx}`);
+      const dateInp = document.getElementById(`editMockDateA_${idx}`);
+      const noteInp = document.getElementById(`editMockNoteA_${idx}`);
 
-      const user = side === "A" ? state.userA : state.userB;
-      const item = user.mockExams?.[idx];
+      const item = state.userA.mockExams?.[idx];
       if (item) {
         const newTitle = titleInp ? titleInp.value.trim() : "";
         const newScore = scoreInp ? scoreInp.value.trim() : "";
+        const newDate = dateInp ? dateInp.value : "";
         const newNote = noteInp ? noteInp.value.trim() : "";
         if (newTitle) item.title = newTitle;
         item.score = newScore || "未记分";
+        if (newDate) item.date = newDate;
         item.note = newNote;
       }
-      editingMockExam = null;
-      if (side === "A") renderUserA();
-      else renderUserB();
+      editingMockExamA = null;
+      renderUserA();
       pushState();
       showToast("已更新记分");
     };
 
-    window.cancelMockExamEdit = () => {
-      const side = editingMockExam?.side;
-      editingMockExam = null;
-      if (side === "A") renderUserA();
-      else if (side === "B") renderUserB();
+    window.cancelMockExamEditA = () => {
+      editingMockExamA = null;
+      renderUserA();
     };
 
-    window.handleMockEditKey = (e, side, idx) => {
+    window.handleMockEditKeyA = (e, idx) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        saveMockExamEdit(side, idx);
+        saveMockExamEditA(idx);
       } else if (e.key === "Escape") {
         e.preventDefault();
-        cancelMockExamEdit();
+        cancelMockExamEditA();
       }
     };
 
-    window.deleteMockExam = (side, idx) => {
-      const user = side === "A" ? state.userA : state.userB;
-      if (!Array.isArray(user.mockExams)) return;
-      editingMockExam = null;
-      user.mockExams.splice(idx, 1);
-      if (side === "A") renderUserA();
-      else renderUserB();
+    window.deleteMockExamA = (idx) => {
+      if (!Array.isArray(state.userA.mockExams)) return;
+      editingMockExamA = null;
+      state.userA.mockExams.splice(idx, 1);
+      renderUserA();
+      pushState();
+    };
+
+    // ==================== 第2页右栏底部：userB 教育学套卷记分（内置丹丹/凯程/冬青 + 可改日期 + 无科目下拉） ====================
+    function renderMockExamAccordionB() {
+      const isOpen = !!openGroupsB.mock;
+      const list = Array.isArray(state.userB.mockExams) ? state.userB.mockExams : [];
+
+      const scoredItems = list.filter(m => String(m.score || "").trim() !== "");
+      const numericScores = scoredItems
+        .map(m => {
+          const match = String(m.score || "").match(/^\d+(\.\d+)?/);
+          return match ? parseFloat(match[0]) : NaN;
+        })
+        .filter(n => !isNaN(n));
+
+      const maxScore = numericScores.length ? Math.max(...numericScores) : null;
+      const avgScore = numericScores.length
+        ? (numericScores.reduce((a, b) => a + b, 0) / numericScores.length).toFixed(1)
+        : null;
+
+      const statsStr = numericScores.length > 0
+        ? `已刷 ${scoredItems.length}/${list.length} · 均分 ${avgScore} · 最高 ${maxScore}`
+        : `已刷 ${scoredItems.length}/${list.length} 套`;
+
+      const seriesConfigs = [
+        {
+          name: "丹丹六套卷",
+          badge: "bg-rose-100 text-rose-800 border-rose-200",
+          accent: "border-l-rose-400"
+        },
+        {
+          name: "凯程六套卷",
+          badge: "bg-sky-100 text-sky-800 border-sky-200",
+          accent: "border-l-sky-400"
+        },
+        {
+          name: "冬青五套卷",
+          badge: "bg-emerald-100 text-emerald-800 border-emerald-200",
+          accent: "border-l-emerald-400"
+        },
+        {
+          name: "其他模拟卷",
+          badge: "bg-violet-100 text-violet-800 border-violet-200",
+          accent: "border-l-violet-400"
+        }
+      ];
+
+      const seriesBlocksHtml = seriesConfigs.map(sc => {
+        const items = list
+          .map((item, idx) => ({ item, idx }))
+          .filter(({ item }) => (item.series || inferSeriesB(item.title)) === sc.name);
+
+        if (items.length === 0) return "";
+        const doneCnt = items.filter(({ item }) => String(item.score || "").trim() !== "").length;
+
+        const cardsHtml = items.map(({ item, idx }) => {
+          const hasScore = String(item.score || "").trim() !== "";
+          const isCustom = !String(item.id || "").startsWith("preset_");
+          const shortName = item.title.replace(`${sc.name} · `, "");
+
+          return `
+            <div class="p-2 rounded-xl border border-l-[3px] ${sc.accent} transition ${
+              hasScore
+                ? "bg-emerald-50/35 border-emerald-200/90"
+                : "bg-slate-50/70 border-slate-200/80 hover:border-amber-300"
+            }">
+              <div class="flex items-center justify-between gap-1.5 flex-wrap">
+                <div class="flex items-center gap-1.5 min-w-0">
+                  <span class="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                    hasScore
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-200 text-slate-500"
+                  }">
+                    ${hasScore ? "✓" : "•"}
+                  </span>
+                  <span class="text-xs font-bold ${hasScore ? "text-slate-800" : "text-slate-600"} truncate">
+                    ${escapeHtml(shortName)}
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+                  <input type="date"
+                    value="${escapeHtml(item.date || "")}"
+                    onchange="updateMockDateB(${idx}, this.value)"
+                    title="做题日期（可补选前几天）"
+                    class="text-[11px] font-mono bg-white border border-slate-200 rounded-md px-1.5 py-0.5 text-slate-600 focus:outline-none focus:border-orange-500" />
+                  <input type="text"
+                    value="${escapeHtml(item.score || "")}"
+                    onchange="updateMockScoreB(${idx}, this.value)"
+                    onkeydown="if(event.key==='Enter') this.blur()"
+                    placeholder="填分数"
+                    title="输入分数后回车或点击空白保存"
+                    class="w-20 text-xs font-mono font-extrabold text-center rounded-md px-1.5 py-0.5 border transition focus:outline-none ${
+                      hasScore
+                        ? "bg-amber-100 text-amber-900 border-amber-300 focus:bg-white focus:border-orange-500"
+                        : "bg-white text-slate-700 border-slate-200 placeholder:text-slate-400 focus:border-orange-500"
+                    }" />
+                  ${isCustom ? `
+                    <button type="button" onclick="deleteMockExamB(${idx})"
+                      class="text-slate-300 hover:text-rose-500 text-sm px-0.5 transition">&times;</button>
+                  ` : ""}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        return `
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between px-1">
+              <span class="px-2 py-0.5 rounded-md text-[11px] font-bold border ${sc.badge}">${sc.name}</span>
+              <span class="text-[11px] font-mono font-semibold text-slate-400">${doneCnt}/${items.length} 套已记分</span>
+            </div>
+            <div class="space-y-1.5">
+              ${cardsHtml}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
+          <div class="px-3.5 py-2.5 flex items-center justify-between gap-2 border-b transition bg-amber-50/90 hover:bg-amber-100/70 border-amber-200">
+            <button onclick="toggleSubjectGroupB('mock')" type="button" class="flex items-center gap-2 flex-1 min-w-0 text-left">
+              <span class="text-xs text-slate-700 font-mono w-3.5 shrink-0">${isOpen ? "▼" : "▶"}</span>
+              <span class="text-sm font-bold text-slate-800 truncate">📝 教育学模拟卷记分</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold shrink-0 bg-amber-100 text-amber-800">${statsStr}</span>
+            </button>
+          </div>
+
+          ${!isOpen ? "" : `
+            <div class="p-2.5 space-y-3 bg-white border-t border-slate-100">
+              <!-- 快捷追加其他卷子（无科目下拉，可直接选日期） -->
+              <div class="p-2 rounded-xl bg-slate-50/80 border border-slate-200/80 flex flex-wrap sm:flex-nowrap gap-1.5 items-center">
+                <input id="mockTitleB" type="text"
+                  onkeydown="if(event.key==='Enter') addMockExamB()"
+                  placeholder="追加其他卷子（如：311真题2024）..."
+                  class="flex-1 min-w-[130px] text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-orange-500" />
+                <input id="mockDateB" type="date" value="${getTodayStr()}"
+                  title="做题日期"
+                  class="text-xs font-mono bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700 focus:outline-none focus:border-orange-500 shrink-0" />
+                <input id="mockScoreB" type="text"
+                  onkeydown="if(event.key==='Enter') addMockExamB()"
+                  placeholder="分数"
+                  class="w-20 text-xs font-mono font-bold bg-amber-50/70 border border-amber-300 rounded-lg px-2 py-1.5 text-amber-900 placeholder:text-amber-600/60 focus:bg-white focus:outline-none focus:border-orange-500 shrink-0" />
+                <button onclick="addMockExamB()" type="button"
+                  class="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition bg-orange-500 hover:bg-orange-600 text-white">
+                  + 添加
+                </button>
+              </div>
+
+              <!-- 丹丹六套卷 / 凯程六套卷 / 冬青五套卷 列表 -->
+              <div class="space-y-3">
+                ${seriesBlocksHtml}
+              </div>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    window.updateMockScoreB = (idx, rawScore) => {
+      const item = state.userB.mockExams?.[idx];
+      if (!item) return;
+      const trimmed = rawScore.trim();
+      item.score = trimmed;
+      if (trimmed && !item.date) {
+        item.date = getTodayStr();
+      }
+      renderUserB();
+      pushState();
+      if (trimmed) {
+        showToast(`${item.title} 已记分：${trimmed}`);
+      }
+    };
+
+    window.updateMockDateB = (idx, newDate) => {
+      const item = state.userB.mockExams?.[idx];
+      if (!item) return;
+      item.date = newDate;
+      renderUserB();
+      pushState();
+      if (newDate) {
+        showToast(`${item.title} 日期已设为 ${formatMonthDayCN(newDate)}`);
+      }
+    };
+
+    window.addMockExamB = () => {
+      const titleEl = document.getElementById("mockTitleB");
+      const dateEl = document.getElementById("mockDateB");
+      const scoreEl = document.getElementById("mockScoreB");
+
+      const title = titleEl ? titleEl.value.trim() : "";
+      const score = scoreEl ? scoreEl.value.trim() : "";
+      if (!title) {
+        showToast("请输入卷子名称");
+        return;
+      }
+
+      if (!Array.isArray(state.userB.mockExams)) state.userB.mockExams = [];
+      state.userB.mockExams.push({
+        id: "mkb_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+        series: inferSeriesB(title),
+        title,
+        score,
+        date: (dateEl && dateEl.value) ? dateEl.value : getTodayStr(),
+        note: ""
+      });
+
+      if (titleEl) titleEl.value = "";
+      if (scoreEl) scoreEl.value = "";
+      renderUserB();
+      pushState();
+      showToast(`已添加：${title}`);
+    };
+
+    window.deleteMockExamB = (idx) => {
+      if (!Array.isArray(state.userB.mockExams)) return;
+      state.userB.mockExams.splice(idx, 1);
+      renderUserB();
       pushState();
     };
 
@@ -2998,11 +3255,11 @@
           `;
         }).join("");
 
-      const mockHtml = renderMockExamAccordion("A");
+      const mockHtml = renderMockExamAccordionA();
       container.innerHTML = chapterAccordionsHtml + mockHtml;
     }
 
-    // ==================== 右栏：地理 4 科 + 教育学/专业课刷题记分 ====================
+    // ==================== 右栏：地理/教育学章节 + 丹丹/凯程/冬青套卷记分 ====================
     window.toggleSubjectGroupB = (groupKey) => {
       openGroupsB[groupKey] = !openGroupsB[groupKey];
       renderUserB();
@@ -3265,7 +3522,7 @@
           `;
         }).join("");
 
-      const mockHtml = renderMockExamAccordion("B");
+      const mockHtml = renderMockExamAccordionB();
       container.innerHTML = geoAccordionsHtml + mockHtml;
     }
 
@@ -3540,11 +3797,19 @@
         }).join("\n");
       };
 
-      const formatMockSummary = (user) => {
+      const formatMockSummaryA = (user) => {
         const todayMocks = (user.mockExams || []).filter(m => m.date === todayStr);
         if (!todayMocks.length) return "";
-        return "\n[今日专业课模考/刷题记分]\n" + todayMocks.map(m =>
+        return "\n[今日专业课模考记分]\n" + todayMocks.map(m =>
           `  🎯 [${m.subject}] ${m.title}：${m.score}`
+        ).join("\n") + "\n";
+      };
+
+      const formatMockSummaryB = (user) => {
+        const todayMocks = (user.mockExams || []).filter(m => m.date === todayStr && String(m.score || "").trim() !== "");
+        if (!todayMocks.length) return "";
+        return "\n[今日教育学模拟卷记分]\n" + todayMocks.map(m =>
+          `  📝 ${m.title}：${m.score}`
         ).join("\n") + "\n";
       };
 
@@ -3589,12 +3854,12 @@
 📘 ${state.userA.name}（累计补做 ${catchupA.doneCatchupCount} 项）
 ${formatDailySummary(state.userA)}${formatWeekSummary(state.userA)}
 [专业课进度 ${pctA}]
-${linesA}${formatMockSummary(state.userA)}${formatPublicCourses(state.userA)}
+${linesA}${formatMockSummaryA(state.userA)}${formatPublicCourses(state.userA)}
 ${state.userA.note ? `💬 复盘：${state.userA.note}\n` : ""}
 📙 ${state.userB.name}（累计补做 ${catchupB.doneCatchupCount} 项）
 ${formatDailySummary(state.userB)}${formatWeekSummary(state.userB)}
 [专业课进度 ${pctB}]
-${linesB}${formatMockSummary(state.userB)}${formatPublicCourses(state.userB)}
+${linesB}${formatMockSummaryB(state.userB)}${formatPublicCourses(state.userB)}
 ${state.userB.note ? `💬 复盘：${state.userB.note}\n` : ""}`;
 
       document.getElementById("reportText").value = report;
